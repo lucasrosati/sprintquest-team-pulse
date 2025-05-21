@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import authService from "@/services/authService";
 
 const ForgotPasswordPage = () => {
@@ -38,13 +39,14 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-sprint-background flex flex-col">
-      <div className="bg-sprint-primary text-white py-2 px-4">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="bg-primary text-primary-foreground py-2 px-4 flex justify-between items-center">
         <h1 className="text-sm font-semibold">Recuperar Senha</h1>
+        <ThemeToggle />
       </div>
 
       <div className="flex-1 flex justify-center items-center p-4">
-        <div className="w-full max-w-md bg-white rounded-md shadow-md overflow-hidden p-6">
+        <div className="w-full max-w-md bg-card text-card-foreground rounded-md shadow-md overflow-hidden p-6">
           <div className="flex mb-6">
             <Button
               variant="ghost"
@@ -60,7 +62,7 @@ const ForgotPasswordPage = () => {
           {!isSubmitted ? (
             <>
               <h2 className="text-xl mb-6 text-center">Esqueceu sua senha?</h2>
-              <p className="text-sm text-gray-600 mb-6 text-center">
+              <p className="text-sm text-muted-foreground mb-6 text-center">
                 Digite seu email abaixo e enviaremos um link para redefinir sua senha.
               </p>
 
@@ -71,12 +73,12 @@ const ForgotPasswordPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-12 bg-gray-100"
+                  className="h-12"
                 />
 
                 <Button
                   type="submit"
-                  className="w-full bg-gray-200 hover:bg-gray-300 text-black h-10"
+                  className="w-full h-10"
                   disabled={isLoading}
                 >
                   {isLoading ? "Enviando..." : "Enviar link de recuperação"}
@@ -86,12 +88,11 @@ const ForgotPasswordPage = () => {
           ) : (
             <div className="text-center space-y-6">
               <h2 className="text-xl font-medium">Email enviado!</h2>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Verifique sua caixa de entrada para instruções sobre como redefinir sua senha.
               </p>
               <Button
                 onClick={() => navigate("/login")}
-                className="bg-gray-200 hover:bg-gray-300 text-black"
               >
                 Voltar para o login
               </Button>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -66,7 +65,7 @@ const LoginForm: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-12 bg-gray-100"
+              className="h-12"
             />
             <Input
               type="password"
@@ -74,13 +73,13 @@ const LoginForm: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="h-12 bg-gray-100"
+              className="h-12"
             />
           </div>
           
           <Button 
             type="submit" 
-            className="w-full bg-gray-200 hover:bg-gray-300 text-black h-10"
+            className="w-full h-10"
             disabled={isLoading}
           >
             {isLoading ? 'Carregando...' : 'Avançar'}
@@ -89,7 +88,7 @@ const LoginForm: React.FC = () => {
           <div className="text-center mt-4">
             <Button 
               variant="link" 
-              className="text-sm text-gray-600"
+              className="text-sm"
               onClick={() => navigate('/forgot-password')}
             >
               Esqueceu a senha?
