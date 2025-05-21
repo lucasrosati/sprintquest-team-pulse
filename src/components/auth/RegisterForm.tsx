@@ -63,8 +63,8 @@ const RegisterForm: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col items-center justify-center flex-1 px-6">
-        <h1 className="text-3xl font-bold mb-4">SprintQuest</h1>
-        <h2 className="text-xl mb-8">Cadastre-se!</h2>
+        <h1 className="text-3xl font-bold mb-4 text-foreground">SprintQuest</h1>
+        <h2 className="text-xl mb-8 text-foreground">Cadastre-se!</h2>
         
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -74,7 +74,7 @@ const RegisterForm: React.FC = () => {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
-              className="h-12 bg-gray-100"
+              className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
             />
             <Input
               type="text"
@@ -82,7 +82,7 @@ const RegisterForm: React.FC = () => {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              className="h-12 bg-gray-100"
+              className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
             />
           </div>
           
@@ -92,7 +92,7 @@ const RegisterForm: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="h-12 bg-gray-100"
+            className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
           
           <Input
@@ -101,7 +101,7 @@ const RegisterForm: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="h-12 bg-gray-100"
+            className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
           
           <Input
@@ -110,12 +110,13 @@ const RegisterForm: React.FC = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="h-12 bg-gray-100"
+            className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
           
           <Button 
             type="submit" 
-            className="w-full bg-gray-200 hover:bg-gray-300 text-black h-10"
+            variant="default"
+            className="w-full h-10"
             disabled={isLoading}
           >
             {isLoading ? 'Carregando...' : 'Avançar'}
@@ -124,7 +125,7 @@ const RegisterForm: React.FC = () => {
           <div className="text-center mt-4">
             <Button 
               variant="link" 
-              className="text-sm text-gray-600"
+              className="text-sm text-primary"
               onClick={() => navigate('/login')}
             >
               Já possui cadastro?
@@ -135,7 +136,7 @@ const RegisterForm: React.FC = () => {
         <div className="mt-auto py-4">
           <Button 
             variant="outline" 
-            className="text-xs bg-transparent"
+            className="text-xs text-foreground border-input"
             onClick={() => navigate('/admin-login')}
           >
             Login administrador
