@@ -67,7 +67,13 @@ export default {
 					primary: '#8B5CF6',  // Purple color for primary elements
 					secondary: '#E0E7FF', // Light purple for secondary elements
 					accent: '#6D28D9',    // Darker purple for accents
-					background: '#F3F4F6' // Light gray background
+					background: '#F3F4F6', // Light gray background
+					dark: {
+						primary: '#9F7AEA',  // Lighter purple for dark mode
+						secondary: '#4C1D95', // Darker purple for secondary in dark
+						accent: '#8B5CF6',    // Medium purple for accents in dark
+						background: '#1A1F2C' // Dark background
+					}
 				}
 			},
 			borderRadius: {
