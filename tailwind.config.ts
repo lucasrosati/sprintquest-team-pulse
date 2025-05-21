@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				sprint: {
+					primary: '#8B5CF6',  // Purple color for primary elements
+					secondary: '#E0E7FF', // Light purple for secondary elements
+					accent: '#6D28D9',    // Darker purple for accents
+					background: '#F3F4F6' // Light gray background
 				}
 			},
 			borderRadius: {
