@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import authService from '@/services/authService';
+import { supabase } from "@/integrations/supabase/client";
 
 const RegisterForm: React.FC = () => {
   const [firstName, setFirstName] = useState('');
@@ -31,16 +31,19 @@ const RegisterForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await authService.register({
-        firstName,
-        lastName,
+      // Register the user with Supabase
+      const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          }
+        }
       });
       
-      // Store auth data
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      if (error) throw error;
       
       toast({
         title: "Cadastro realizado com sucesso",
@@ -48,12 +51,24 @@ const RegisterForm: React.FC = () => {
       });
       
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
+      
+      let errorMessage = "Não foi possível completar seu cadastro. Tente novamente.";
+      
+      // Handle specific Supabase errors
+      if (error.message) {
+        if (error.message.includes("already registered")) {
+          errorMessage = "Este e-mail já está cadastrado.";
+        } else if (error.message.includes("password")) {
+          errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+        }
+      }
+      
       toast({
         variant: "destructive",
         title: "Erro no cadastro",
-        description: "Não foi possível completar seu cadastro. Tente novamente.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -116,7 +131,7 @@ const RegisterForm: React.FC = () => {
           <Button 
             type="submit" 
             variant="default"
-            className="w-full h-10"
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
             disabled={isLoading}
           >
             {isLoading ? 'Carregando...' : 'Avançar'}
