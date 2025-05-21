@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import authService from '@/services/authService';
 
-const LoginForm: React.FC = () => {
+const AdminLoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +19,7 @@ const LoginForm: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Você pode criar um método específico para login de administrador no authService
       const response = await authService.login({ email, password });
       
       // Store auth data
@@ -27,16 +28,16 @@ const LoginForm: React.FC = () => {
       
       toast({
         title: "Login bem-sucedido",
-        description: "Você está sendo redirecionado para o dashboard.",
+        description: "Você está sendo redirecionado para o painel administrativo.",
       });
       
-      navigate('/dashboard');
+      navigate('/admin-dashboard'); // Redireciona para um dashboard admin (que você pode criar depois)
     } catch (error) {
       console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: "Verifique suas credenciais e tente novamente.",
+        description: "Verifique suas credenciais de administrador e tente novamente.",
       });
     } finally {
       setIsLoading(false);
@@ -56,7 +57,7 @@ const LoginForm: React.FC = () => {
       </div>
       <div className="flex flex-col items-center justify-center flex-1 px-6">
         <h1 className="text-3xl font-bold mb-8 text-foreground">SprintQuest</h1>
-        <h2 className="text-2xl font-semibold mb-8 text-foreground">LOGIN</h2>
+        <h2 className="text-2xl font-semibold mb-8 text-foreground">Login administrador</h2>
         
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
           <div className="space-y-4">
@@ -96,19 +97,9 @@ const LoginForm: React.FC = () => {
             </Button>
           </div>
         </form>
-        
-        <div className="mt-auto py-4">
-          <Button 
-            variant="outline" 
-            className="text-xs text-foreground border-input"
-            onClick={() => navigate('/admin-login')}
-          >
-            Login administrador
-          </Button>
-        </div>
       </div>
     </div>
   );
 };
 
-export default LoginForm;
+export default AdminLoginForm;
