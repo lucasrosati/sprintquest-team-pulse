@@ -52,22 +52,22 @@ const DashboardPage = () => {
   
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-950 text-white">
-        {/* Sidebar */}
-        <Sidebar variant="inset" side="left">
-          <SidebarHeader className="flex items-center justify-between p-4">
+      <div className="flex h-screen w-full bg-gray-950 text-white overflow-hidden">
+        {/* Sidebar - made narrower and with darker background */}
+        <Sidebar variant="inset" side="left" className="w-64 bg-gray-900 border-r border-gray-800">
+          <SidebarHeader className="flex items-center justify-between p-4 border-b border-gray-800">
             <div className="text-xl font-bold">Menu usuário</div>
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent className="p-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton className="w-full px-4 py-3 hover:bg-gray-800 text-gray-300">
                   <User className="h-5 w-5" />
                   <span>Perfil</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton className="w-full px-4 py-3 hover:bg-gray-800 text-gray-300">
                   <Menu className="h-5 w-5" />
                   <span>Menu</span>
                 </SidebarMenuButton>
@@ -82,7 +82,7 @@ const DashboardPage = () => {
                     {project.name}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full flex items-center gap-1 mt-2">
+                <Button variant="outline" size="sm" className="w-full flex items-center gap-1 mt-2 bg-gray-800 border-gray-700 hover:bg-gray-700">
                   <Plus className="h-4 w-4" /> Novo projeto
                 </Button>
               </div>
@@ -90,32 +90,32 @@ const DashboardPage = () => {
           </SidebarContent>
         </Sidebar>
 
-        {/* Main content */}
-        <main className="flex-1 p-8 bg-gray-900">
-          <div className="max-w-7xl mx-auto">
+        {/* Main content - full width and height with proper spacing */}
+        <main className="flex-1 h-full bg-gray-900 overflow-y-auto">
+          <div className="max-w-full mx-auto p-6">
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-8 px-4">
               <h1 className="text-3xl font-bold">SprintQuest</h1>
               <div className="flex items-center gap-4">
                 <ThemeToggle />
-                <Button variant="outline" onClick={handleLogout} className="border-gray-600">
+                <Button variant="outline" onClick={handleLogout} className="border-gray-600 hover:bg-gray-800">
                   Sair
                 </Button>
               </div>
             </div>
 
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Content Grid - better spacing and width for larger screens */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 px-4">
               {/* Rewards Section */}
               <Card className="bg-gray-800 border-gray-700 shadow-lg">
-                <CardHeader>
+                <CardHeader className="border-b border-gray-700">
                   <CardTitle className="text-center text-xl text-white">Recompensas</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <RadioGroup defaultValue="option-1" className="space-y-3">
+                <CardContent className="pt-6">
+                  <RadioGroup defaultValue="option-1" className="space-y-4">
                     {rewards.map((reward) => (
                       <div key={reward.id} className="bg-gray-700 p-4 rounded-md flex items-center space-x-4">
-                        <RadioGroupItem value={`option-${reward.id}`} id={`option-${reward.id}`} className="text-primary" />
+                        <RadioGroupItem value={`option-${reward.id}`} id={`option-${reward.id}`} className="text-sprint-primary" />
                         <label htmlFor={`option-${reward.id}`} className="text-base font-medium leading-none w-full text-white">
                           {reward.name}
                         </label>
@@ -127,28 +127,22 @@ const DashboardPage = () => {
 
               {/* Rankings Section */}
               <Card className="bg-gray-800 border-gray-700 shadow-lg">
-                <CardHeader>
+                <CardHeader className="border-b border-gray-700">
                   <CardTitle className="text-center text-xl text-white">Rankings</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   <div className="grid grid-cols-2 gap-6">
                     {/* Team Rankings */}
                     <div>
                       <h3 className="text-center mb-4 text-white font-medium">Por equipe</h3>
                       <div className="bg-gray-700 p-4 rounded-md">
                         <div className="space-y-4">
-                          <div className="flex items-center">
-                            <span className="mr-3 font-medium">1.</span>
-                            <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="mr-3 font-medium">2.</span>
-                            <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="mr-3 font-medium">3.</span>
-                            <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                          </div>
+                          {[1, 2, 3].map((rank) => (
+                            <div key={rank} className="flex items-center">
+                              <span className="mr-3 font-medium">{rank}.</span>
+                              <div className="h-0.5 bg-gray-500 flex-grow"></div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -158,18 +152,12 @@ const DashboardPage = () => {
                       <h3 className="text-center mb-4 text-white font-medium">Por membro</h3>
                       <div className="bg-gray-700 p-4 rounded-md">
                         <div className="space-y-4">
-                          <div className="flex items-center">
-                            <span className="mr-3 font-medium">1.</span>
-                            <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="mr-3 font-medium">2.</span>
-                            <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="mr-3 font-medium">3.</span>
-                            <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                          </div>
+                          {[1, 2, 3].map((rank) => (
+                            <div key={rank} className="flex items-center">
+                              <span className="mr-3 font-medium">{rank}.</span>
+                              <div className="h-0.5 bg-gray-500 flex-grow"></div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
