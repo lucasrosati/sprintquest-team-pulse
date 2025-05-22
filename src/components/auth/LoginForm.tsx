@@ -5,7 +5,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import authService from '@/services/authService';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -22,20 +21,35 @@ const LoginForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Pass isAdmin flag to login service for admin authentication check
-      const response = await authService.login({ email, password });
+      // Bypass authentication - simulate response
+      const mockUser = {
+        id: '123',
+        firstName: 'Usuário',
+        lastName: 'Teste',
+        email: email || 'usuario@exemplo.com',
+        role: isAdmin ? 'admin' : 'user'
+      };
+      
+      // Mock token
+      const mockToken = 'mock-jwt-token';
       
       // Store auth data
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify({...response.user, isAdmin}));
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('user', JSON.stringify({...mockUser, isAdmin}));
       
-      toast({
-        title: "Login bem-sucedido",
-        description: "Você está sendo redirecionado para o dashboard.",
-      });
+      // Add a small delay to simulate API call
+      setTimeout(() => {
+        toast({
+          title: "Login bem-sucedido",
+          description: "Você está sendo redirecionado para o dashboard.",
+        });
+        
+        // Redirect based on admin status
+        navigate(isAdmin ? '/admin-dashboard' : '/dashboard');
+        
+        setIsLoading(false);
+      }, 500);
       
-      // Redirect based on admin status
-      navigate(isAdmin ? '/admin-dashboard' : '/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -43,7 +57,6 @@ const LoginForm: React.FC = () => {
         title: "Erro ao fazer login",
         description: "Verifique suas credenciais e tente novamente.",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -70,7 +83,6 @@ const LoginForm: React.FC = () => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
             />
             <Input
@@ -78,7 +90,6 @@ const LoginForm: React.FC = () => {
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
             />
           </div>
