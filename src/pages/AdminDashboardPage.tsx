@@ -1,13 +1,23 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, LogOut, Plus, Save } from 'lucide-react';
+import { Edit, LogOut, Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Reward {
   id: string;
@@ -58,6 +68,14 @@ const AdminDashboardPage = () => {
     ]);
   };
 
+  const removeReward = (id: string) => {
+    setRewards(rewards.filter(reward => reward.id !== id));
+    toast({
+      title: "Recompensa removida",
+      description: "A recompensa foi removida com sucesso.",
+    });
+  };
+
   const saveChanges = () => {
     setRewards(rewards.map(reward => ({ ...reward, isEditing: false })));
     toast({
@@ -87,14 +105,15 @@ const AdminDashboardPage = () => {
             <CardTitle className="text-xl">Recompensas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="text-center font-medium">Recompensa</div>
               <div className="text-center font-medium">Pontuação necessária</div>
+              <div className="text-center font-medium">Ações</div>
             </div>
             
             <div className="space-y-4">
               {rewards.map((item) => (
-                <div key={item.id} className="grid grid-cols-2 gap-4">
+                <div key={item.id} className="grid grid-cols-3 gap-4">
                   <div className="bg-gray-200 dark:bg-gray-700 p-4 rounded-md">
                     {item.isEditing ? (
                       <Textarea
@@ -116,6 +135,35 @@ const AdminDashboardPage = () => {
                       />
                     ) : (
                       <div className="text-center">{item.points}</div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {item.isEditing && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Remover
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover recompensa</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja remover esta recompensa? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removeReward(item.id)}>
+                              Remover
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </div>
