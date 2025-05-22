@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import authService from '@/services/authService';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -18,7 +18,7 @@ import {
   SidebarMenuSub,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { User, Plus, Menu, BarChart } from 'lucide-react';
+import { User, Plus, Menu, BarChart, Award } from 'lucide-react';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -49,6 +49,13 @@ const DashboardPage = () => {
     { id: 2, name: 'Recompensa 2' },
     { id: 3, name: 'Recompensa 3' },
   ];
+
+  const handleRedeemReward = (rewardId: number) => {
+    toast({
+      title: "Resgate solicitado",
+      description: `Você solicitou o resgate da recompensa ${rewardId}.`,
+    });
+  };
   
   return (
     <SidebarProvider>
@@ -114,11 +121,22 @@ const DashboardPage = () => {
                 <CardContent className="pt-6">
                   <RadioGroup defaultValue="option-1" className="space-y-4">
                     {rewards.map((reward) => (
-                      <div key={reward.id} className="bg-gray-700 p-4 rounded-md flex items-center space-x-4">
-                        <RadioGroupItem value={`option-${reward.id}`} id={`option-${reward.id}`} className="text-sprint-primary" />
-                        <label htmlFor={`option-${reward.id}`} className="text-base font-medium leading-none w-full text-white">
-                          {reward.name}
-                        </label>
+                      <div key={reward.id} className="bg-gray-700 p-4 rounded-md flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <RadioGroupItem value={`option-${reward.id}`} id={`option-${reward.id}`} className="text-sprint-primary" />
+                          <label htmlFor={`option-${reward.id}`} className="text-base font-medium leading-none w-full text-white">
+                            {reward.name}
+                          </label>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleRedeemReward(reward.id)}
+                          className="bg-sprint-primary hover:bg-sprint-accent border-none text-white flex items-center gap-1"
+                        >
+                          <Award className="h-4 w-4" />
+                          Resgatar
+                        </Button>
                       </div>
                     ))}
                   </RadioGroup>
