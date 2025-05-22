@@ -73,7 +73,7 @@ const HomePage = () => {
       
       <footer className="bg-white dark:bg-gray-900 py-6">
         <div className="container mx-auto text-center text-gray-600 dark:text-gray-400">
-          <p>© 2023 SprintQuest - Todos os direitos reservados</p>
+          <p>© 2025 SprintQuest - Todos os direitos reservados</p>
         </div>
       </footer>
     </div>
