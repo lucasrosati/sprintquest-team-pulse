@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, LogOut, Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,13 @@ const AdminDashboardPage = () => {
     { id: '4', description: 'Macbook Pro M4', points: 100000, isEditing: false },
     { id: '5', description: 'Nova recompensa', points: 5000, isEditing: false },
   ]);
+
+  // Save rewards to localStorage on mount and when rewards change
+  useEffect(() => {
+    // Remove isEditing property before saving to localStorage
+    const rewardsForStorage = rewards.map(({ isEditing, ...rest }) => rest);
+    localStorage.setItem('adminRewards', JSON.stringify(rewardsForStorage));
+  }, [rewards]);
   
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -77,7 +85,13 @@ const AdminDashboardPage = () => {
   };
 
   const saveChanges = () => {
-    setRewards(rewards.map(reward => ({ ...reward, isEditing: false })));
+    const updatedRewards = rewards.map(reward => ({ ...reward, isEditing: false }));
+    setRewards(updatedRewards);
+    
+    // Save to localStorage for ProfilePage to access
+    const rewardsForStorage = updatedRewards.map(({ isEditing, ...rest }) => rest);
+    localStorage.setItem('adminRewards', JSON.stringify(rewardsForStorage));
+    
     toast({
       title: "Alterações salvas",
       description: "As recompensas foram atualizadas com sucesso.",
