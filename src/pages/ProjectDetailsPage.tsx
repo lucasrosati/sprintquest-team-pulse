@@ -1,13 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowLeft, Plus, X } from 'lucide-react';
+import KanbanBoard from '@/components/KanbanBoard';
 
 const ProjectDetailsPage = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const [isKanbanOpen, setIsKanbanOpen] = useState(false);
   
   // Mock data for project details - in a real app this would come from an API
   // Based on the projectId
@@ -107,7 +110,10 @@ const ProjectDetailsPage = () => {
               <CardTitle className="text-center text-xl text-white">Quadro Kanban</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="flex justify-center items-center h-72 text-gray-500">
+              <div 
+                className="flex justify-center items-center h-72 text-gray-500 cursor-pointer hover:bg-gray-750 transition-colors rounded-md"
+                onClick={() => setIsKanbanOpen(true)}
+              >
                 <div className="text-center">
                   <div className="w-32 h-32 mx-auto border-2 border-gray-700 rounded-lg flex items-center justify-center">
                     <div className="transform rotate-45 w-24 h-24 border-gray-700 border-2"></div>
@@ -119,6 +125,28 @@ const ProjectDetailsPage = () => {
           </Card>
         </div>
       </main>
+
+      {/* Kanban Dialog */}
+      <Dialog open={isKanbanOpen} onOpenChange={setIsKanbanOpen}>
+        <DialogContent className="bg-gray-850 text-white border-gray-700 max-w-6xl h-[80vh] flex flex-col">
+          <DialogHeader className="border-b border-gray-700 pb-4">
+            <DialogTitle className="text-xl text-white flex justify-between items-center">
+              <span>Quadro Kanban - {projectName}</span>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsKanbanOpen(false)} 
+                className="hover:bg-gray-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto p-1">
+            <KanbanBoard />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

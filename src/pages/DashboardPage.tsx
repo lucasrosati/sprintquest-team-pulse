@@ -38,11 +38,14 @@ const DashboardPage = () => {
     navigate('/login');
   };
 
-  const projects = [
+  // Initialize projects from localStorage or use default projects
+  const initialProjects = JSON.parse(localStorage.getItem('projects') || 'null') || [
     { id: 'a', name: 'Projeto A' },
     { id: 'b', name: 'Projeto B' },
     { id: 'c', name: 'Projeto C' },
   ];
+  
+  const [projects, setProjects] = useState(initialProjects);
   
   const rewards = [
     { id: 1, name: 'Recompensa 1' },
@@ -59,6 +62,36 @@ const DashboardPage = () => {
   
   const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
+  };
+  
+  const handleAddProject = () => {
+    // Get the next letter in the alphabet after the last project
+    const lastProjectId = projects[projects.length - 1].id;
+    let nextId: string;
+    
+    // If the last ID is a letter, get the next letter
+    if (lastProjectId.length === 1 && lastProjectId >= 'a' && lastProjectId <= 'z') {
+      const nextChar = String.fromCharCode(lastProjectId.charCodeAt(0) + 1);
+      nextId = nextChar;
+    } else {
+      // Fallback to a unique ID if it's not a simple letter
+      nextId = String.fromCharCode('a'.charCodeAt(0) + projects.length);
+    }
+    
+    const nextName = `Projeto ${nextId.toUpperCase()}`;
+    
+    const newProject = { id: nextId, name: nextName };
+    const updatedProjects = [...projects, newProject];
+    
+    setProjects(updatedProjects);
+    
+    // Save to localStorage
+    localStorage.setItem('projects', JSON.stringify(updatedProjects));
+    
+    toast({
+      title: "Novo projeto criado",
+      description: `O projeto "${nextName}" foi criado com sucesso.`,
+    });
   };
   
   return (
@@ -97,7 +130,12 @@ const DashboardPage = () => {
                     {project.name}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full flex items-center gap-1 mt-2 bg-gray-800 border-gray-700 hover:bg-gray-700">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full flex items-center gap-1 mt-2 bg-gray-800 border-gray-700 hover:bg-gray-700"
+                  onClick={handleAddProject}
+                >
                   <Plus className="h-4 w-4" /> Novo projeto
                 </Button>
               </div>
