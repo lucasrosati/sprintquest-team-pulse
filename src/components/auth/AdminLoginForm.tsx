@@ -5,7 +5,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import authService from '@/services/authService';
 
 const AdminLoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -18,29 +17,29 @@ const AdminLoginForm: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    // For now, we're accepting any credentials without validation
     try {
-      // Você pode criar um método específico para login de administrador no authService
-      const response = await authService.login({ email, password });
-      
-      // Store auth data
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
-      toast({
-        title: "Login bem-sucedido",
-        description: "Você está sendo redirecionado para o painel administrativo.",
-      });
-      
-      navigate('/admin-dashboard'); // Redireciona para um dashboard admin (que você pode criar depois)
+      // Simulate a loading delay
+      setTimeout(() => {
+        toast({
+          title: "Login bem-sucedido",
+          description: "Você está sendo redirecionado para o painel administrativo.",
+        });
+        
+        // Navigate to the admin dashboard
+        navigate('/admin-dashboard');
+        
+        setIsLoading(false);
+      }, 800);
     } catch (error) {
       console.error('Login error:', error);
+      setIsLoading(false);
+      
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: "Verifique suas credenciais de administrador e tente novamente.",
+        description: "Ocorreu um erro no processo de login.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
