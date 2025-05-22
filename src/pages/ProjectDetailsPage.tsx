@@ -1,16 +1,25 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import KanbanBoard from '@/components/KanbanBoard';
+import { toast } from 'sonner';
+
+interface Ranking {
+  position: number;
+  name: string;
+  points: number;
+}
 
 const ProjectDetailsPage = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [isKanbanOpen, setIsKanbanOpen] = useState(false);
+  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
   
   // Mock data for project details - in a real app this would come from an API
   // Based on the projectId
@@ -18,13 +27,31 @@ const ProjectDetailsPage = () => {
     projectId === 'a' ? 'Projeto A' :
     projectId === 'b' ? 'Projeto B' :
     projectId === 'c' ? 'Projeto C' : 'Projeto';
-  
-  // Mock ranking data
-  const rankings = [
-    { position: 1, points: 10000 },
-    { position: 2, points: 8000 },
-    { position: 3, points: 7000 },
-  ];
+    
+  useEffect(() => {
+    const fetchRankings = async () => {
+      try {
+        // In a real implementation, this would be API calls to fetch rankings
+        // For now, we'll simulate fetching rankings based on the project ID
+        
+        // Simulated API response for rankings
+        const rankingsData = [
+          { position: 1, name: 'Equipe Alpha', points: 10000 },
+          { position: 2, name: 'Equipe Beta', points: 8000 },
+          { position: 3, name: 'Equipe Gamma', points: 7000 },
+        ];
+        
+        setRankings(rankingsData);
+      } catch (error) {
+        console.error('Error fetching rankings:', error);
+        toast.error('Falha ao carregar os rankings');
+      } finally {
+        setRankingsLoading(false);
+      }
+    };
+
+    fetchRankings();
+  }, [projectId]);
   
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -88,18 +115,24 @@ const ProjectDetailsPage = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-4">
-                {rankings.map((rank) => (
-                  <div key={rank.position} className="bg-gray-700 p-4 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-xl font-bold mr-4">{rank.position}.</span>
-                        <div className="h-8 w-8 rounded-full bg-gray-600 mr-3"></div>
-                        <span>Equipe {rank.position}</span>
+                {rankingsLoading ? (
+                  <p className="text-center text-sm">Carregando...</p>
+                ) : rankings.length > 0 ? (
+                  rankings.map((rank) => (
+                    <div key={rank.position} className="bg-gray-700 p-4 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="text-xl font-bold mr-4">{rank.position}.</span>
+                          <div className="h-8 w-8 rounded-full bg-gray-600 mr-3"></div>
+                          <span>{rank.name}</span>
+                        </div>
+                        <span className="font-bold">{rank.points.toLocaleString()}</span>
                       </div>
-                      <span className="font-bold">{rank.points.toLocaleString()}</span>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-sm">Nenhum ranking disponível</p>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -13,10 +13,19 @@ interface Reward {
   points: number;
 }
 
+interface Ranking {
+  position: number;
+  name: string;
+  points: number;
+}
+
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [teamRankings, setTeamRankings] = useState<Ranking[]>([]);
+  const [memberRankings, setMemberRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -50,7 +59,38 @@ const ProfilePage = () => {
       }
     };
 
+    const fetchRankings = async () => {
+      try {
+        // In a real implementation, this would be API calls
+        // For now, we'll simulate fetching rankings
+        // This would be replaced with actual API calls in production
+        
+        // Simulated API response for team rankings
+        const teamRankingsData = [
+          { position: 1, name: 'Time Alpha', points: 25000 },
+          { position: 2, name: 'Time Beta', points: 18000 },
+          { position: 3, name: 'Time Gamma', points: 12500 },
+        ];
+        
+        // Simulated API response for member rankings
+        const memberRankingsData = [
+          { position: 1, name: 'João Silva', points: 8500 },
+          { position: 2, name: 'Maria Oliveira', points: 7200 },
+          { position: 3, name: 'Carlos Santos', points: 5800 },
+        ];
+        
+        setTeamRankings(teamRankingsData);
+        setMemberRankings(memberRankingsData);
+      } catch (error) {
+        console.error('Error fetching rankings:', error);
+        toast.error('Erro ao carregar rankings');
+      } finally {
+        setRankingsLoading(false);
+      }
+    };
+
     fetchRewards();
+    fetchRankings();
   }, []);
   
   return (
@@ -79,56 +119,114 @@ const ProfilePage = () => {
         </div>
       </div>
       
-      {/* Rewards Section */}
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column - Reward Description */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-center">Recompensa</h2>
-            <div className="space-y-4">
-              {loading ? (
-                <p className="text-center">Carregando recompensas...</p>
-              ) : rewards.length > 0 ? (
-                rewards.map((reward) => (
-                  <Card 
-                    key={reward.id}
-                    className="bg-gray-800 border-gray-700 shadow-lg"
-                  >
-                    <CardContent className="p-6">
-                      <p className="text-lg text-center">{reward.description}</p>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <p className="text-center">Nenhuma recompensa disponível</p>
-              )}
+      {/* Main Grid - Rewards and Rankings */}
+      <div className="w-full max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column - Rewards */}
+        <div className="space-y-8">
+          <h2 className="text-2xl font-semibold mb-4 text-center">Recompensas</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Reward Description */}
+            <div>
+              <h3 className="text-xl font-medium mb-4 text-center">Recompensa</h3>
+              <div className="space-y-4">
+                {loading ? (
+                  <p className="text-center">Carregando recompensas...</p>
+                ) : rewards.length > 0 ? (
+                  rewards.map((reward) => (
+                    <Card 
+                      key={reward.id}
+                      className="bg-gray-800 border-gray-700 shadow-lg"
+                    >
+                      <CardContent className="p-6">
+                        <p className="text-lg text-center">{reward.description}</p>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-center">Nenhuma recompensa disponível</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Points Required */}
+            <div>
+              <h3 className="text-xl font-medium mb-4 text-center">Pontuação necessária</h3>
+              <div className="space-y-4">
+                {loading ? (
+                  <p className="text-center">Carregando pontuações...</p>
+                ) : rewards.length > 0 ? (
+                  rewards.map((reward) => (
+                    <Card 
+                      key={reward.id}
+                      className={`${
+                        userPoints >= reward.points 
+                          ? 'bg-gray-800 border-gray-700' 
+                          : 'bg-gray-700 border-gray-600'
+                      } shadow-lg`}
+                    >
+                      <CardContent className="p-6">
+                        <p className="text-lg text-center">{reward.points}</p>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-center">Nenhuma pontuação disponível</p>
+                )}
+              </div>
             </div>
           </div>
-          
-          {/* Right Column - Points Required */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-center">Pontuação necessária</h2>
-            <div className="space-y-4">
-              {loading ? (
-                <p className="text-center">Carregando pontuações...</p>
-              ) : rewards.length > 0 ? (
-                rewards.map((reward) => (
-                  <Card 
-                    key={reward.id}
-                    className={`${
-                      userPoints >= reward.points 
-                        ? 'bg-gray-800 border-gray-700' 
-                        : 'bg-gray-700 border-gray-600'
-                    } shadow-lg`}
-                  >
-                    <CardContent className="p-6">
-                      <p className="text-lg text-center">{reward.points}</p>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <p className="text-center">Nenhuma pontuação disponível</p>
-              )}
+        </div>
+        
+        {/* Right Column - Rankings */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-4 text-center">Rankings</h2>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Team Rankings */}
+            <div>
+              <h3 className="text-center mb-4 text-white font-medium">Por equipe</h3>
+              <div className="bg-gray-800 p-4 rounded-md">
+                <div className="space-y-4">
+                  {rankingsLoading ? (
+                    <p className="text-center text-sm">Carregando...</p>
+                  ) : teamRankings.length > 0 ? (
+                    teamRankings.map((rank) => (
+                      <div key={rank.position} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="mr-2 font-medium">{rank.position}.</span>
+                          <span className="text-sm">{rank.name}</span>
+                        </div>
+                        <span className="font-medium text-sm">{rank.points}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-sm">Nenhum ranking disponível</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Member Rankings */}
+            <div>
+              <h3 className="text-center mb-4 text-white font-medium">Por membro</h3>
+              <div className="bg-gray-800 p-4 rounded-md">
+                <div className="space-y-4">
+                  {rankingsLoading ? (
+                    <p className="text-center text-sm">Carregando...</p>
+                  ) : memberRankings.length > 0 ? (
+                    memberRankings.map((rank) => (
+                      <div key={rank.position} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="mr-2 font-medium">{rank.position}.</span>
+                          <span className="text-sm">{rank.name}</span>
+                        </div>
+                        <span className="font-medium text-sm">{rank.points}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-sm">Nenhum ranking disponível</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

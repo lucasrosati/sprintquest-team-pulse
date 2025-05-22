@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import authService from '@/services/authService';
@@ -19,9 +19,18 @@ import {
 import { User, Award } from 'lucide-react';
 import { ProjectList } from '@/components/projects/ProjectList';
 
+interface Ranking {
+  position: number;
+  name: string;
+  points: number;
+}
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [teamRankings, setTeamRankings] = useState<Ranking[]>([]);
+  const [memberRankings, setMemberRankings] = useState<Ranking[]>([]);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -35,6 +44,43 @@ const DashboardPage = () => {
     });
     navigate('/login');
   };
+  
+  useEffect(() => {
+    const fetchRankings = async () => {
+      try {
+        // In a real implementation, this would be API calls to fetch rankings
+        // For now, we'll simulate fetching rankings
+        
+        // Simulated API response for team rankings
+        const teamRankingsData = [
+          { position: 1, name: 'Time Alpha', points: 25000 },
+          { position: 2, name: 'Time Beta', points: 18000 },
+          { position: 3, name: 'Time Gamma', points: 12500 },
+        ];
+        
+        // Simulated API response for member rankings
+        const memberRankingsData = [
+          { position: 1, name: 'João Silva', points: 8500 },
+          { position: 2, name: 'Maria Oliveira', points: 7200 },
+          { position: 3, name: 'Carlos Santos', points: 5800 },
+        ];
+        
+        setTeamRankings(teamRankingsData);
+        setMemberRankings(memberRankingsData);
+      } catch (error) {
+        console.error('Error fetching rankings:', error);
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar os rankings",
+          variant: "destructive"
+        });
+      } finally {
+        setRankingsLoading(false);
+      }
+    };
+
+    fetchRankings();
+  }, [toast]);
   
   const rewards = [
     { id: 1, name: 'Recompensa 1' },
@@ -134,12 +180,21 @@ const DashboardPage = () => {
                       <h3 className="text-center mb-4 text-white font-medium">Por equipe</h3>
                       <div className="bg-gray-700 p-4 rounded-md">
                         <div className="space-y-4">
-                          {[1, 2, 3].map((rank) => (
-                            <div key={rank} className="flex items-center">
-                              <span className="mr-3 font-medium">{rank}.</span>
-                              <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                            </div>
-                          ))}
+                          {rankingsLoading ? (
+                            <p className="text-center text-sm">Carregando...</p>
+                          ) : teamRankings.length > 0 ? (
+                            teamRankings.map((rank) => (
+                              <div key={rank.position} className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <span className="mr-2 font-medium">{rank.position}.</span>
+                                  <span className="text-sm">{rank.name}</span>
+                                </div>
+                                <span className="font-medium text-sm">{rank.points}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-center text-sm">Nenhum ranking disponível</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -149,12 +204,21 @@ const DashboardPage = () => {
                       <h3 className="text-center mb-4 text-white font-medium">Por membro</h3>
                       <div className="bg-gray-700 p-4 rounded-md">
                         <div className="space-y-4">
-                          {[1, 2, 3].map((rank) => (
-                            <div key={rank} className="flex items-center">
-                              <span className="mr-3 font-medium">{rank}.</span>
-                              <div className="h-0.5 bg-gray-500 flex-grow"></div>
-                            </div>
-                          ))}
+                          {rankingsLoading ? (
+                            <p className="text-center text-sm">Carregando...</p>
+                          ) : memberRankings.length > 0 ? (
+                            memberRankings.map((rank) => (
+                              <div key={rank.position} className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <span className="mr-2 font-medium">{rank.position}.</span>
+                                  <span className="text-sm">{rank.name}</span>
+                                </div>
+                                <span className="font-medium text-sm">{rank.points}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-center text-sm">Nenhum ranking disponível</p>
+                          )}
                         </div>
                       </div>
                     </div>
