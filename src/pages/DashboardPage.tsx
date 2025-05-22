@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import authService from '@/services/authService';
@@ -6,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,16 +14,14 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { User, Plus, Menu, BarChart, Award, Trash2 } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { User, Menu, Award } from 'lucide-react';
+import { ProjectList } from '@/components/projects/ProjectList';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -37,24 +35,6 @@ const DashboardPage = () => {
     });
     navigate('/login');
   };
-
-  // Initialize projects from localStorage or use default projects
-  const initialProjects = JSON.parse(localStorage.getItem('projects') || 'null') || [
-    { id: 'a', name: 'Projeto A' },
-    { id: 'b', name: 'Projeto B' },
-    { id: 'c', name: 'Projeto C' },
-  ];
-  
-  // Filter out projects after 'D'
-  const filteredProjects = initialProjects.filter(project => {
-    // Keep only projects with IDs 'a', 'b', 'c', or 'd'
-    return ['a', 'b', 'c', 'd'].includes(project.id);
-  });
-  
-  // Save the filtered projects to localStorage
-  localStorage.setItem('projects', JSON.stringify(filteredProjects));
-  
-  const [projects, setProjects] = useState(filteredProjects);
   
   const rewards = [
     { id: 1, name: 'Recompensa 1' },
@@ -66,56 +46,6 @@ const DashboardPage = () => {
     toast({
       title: "Resgate solicitado",
       description: `Você solicitou o resgate da recompensa ${rewardId}.`,
-    });
-  };
-  
-  const handleProjectClick = (projectId: string) => {
-    navigate(`/project/${projectId}`);
-  };
-  
-  const handleAddProject = () => {
-    // Get the next letter in the alphabet after the last project
-    const lastProjectId = projects[projects.length - 1].id;
-    let nextId: string;
-    
-    // If the last ID is a letter, get the next letter
-    if (lastProjectId.length === 1 && lastProjectId >= 'a' && lastProjectId <= 'z') {
-      const nextChar = String.fromCharCode(lastProjectId.charCodeAt(0) + 1);
-      nextId = nextChar;
-    } else {
-      // Fallback to a unique ID if it's not a simple letter
-      nextId = String.fromCharCode('a'.charCodeAt(0) + projects.length);
-    }
-    
-    const nextName = `Projeto ${nextId.toUpperCase()}`;
-    
-    const newProject = { id: nextId, name: nextName };
-    const updatedProjects = [...projects, newProject];
-    
-    setProjects(updatedProjects);
-    
-    // Save to localStorage
-    localStorage.setItem('projects', JSON.stringify(updatedProjects));
-    
-    toast({
-      title: "Novo projeto criado",
-      description: `O projeto "${nextName}" foi criado com sucesso.`,
-    });
-  };
-  
-  const handleDeleteProject = (projectId: string, projectName: string) => {
-    // Filter out the project to remove
-    const updatedProjects = projects.filter(project => project.id !== projectId);
-    
-    // Update state
-    setProjects(updatedProjects);
-    
-    // Save to localStorage
-    localStorage.setItem('projects', JSON.stringify(updatedProjects));
-    
-    toast({
-      title: "Projeto removido",
-      description: `O projeto "${projectName}" foi removido com sucesso.`,
     });
   };
   
@@ -144,58 +74,7 @@ const DashboardPage = () => {
             </SidebarMenu>
             
             <div className="mt-6 px-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-300">Projetos</h3>
-              <div className="space-y-2">
-                {projects.map((project) => (
-                  <div 
-                    key={project.id} 
-                    className="bg-gray-800 p-3 rounded-md flex justify-between items-center hover:bg-gray-700 transition-colors"
-                  >
-                    <div 
-                      className="flex-1 cursor-pointer text-center"
-                      onClick={() => handleProjectClick(project.id)}
-                    >
-                      {project.name}
-                    </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-7 w-7 hover:bg-gray-600"
-                        >
-                          <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-400" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-gray-800 border-gray-700 text-white">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remover projeto</AlertDialogTitle>
-                          <AlertDialogDescription className="text-gray-300">
-                            Tem certeza que deseja remover o projeto "{project.name}"? Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600">Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={() => handleDeleteProject(project.id, project.name)}
-                          >
-                            Remover
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                ))}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full flex items-center gap-1 mt-2 bg-gray-800 border-gray-700 hover:bg-gray-700"
-                  onClick={handleAddProject}
-                >
-                  <Plus className="h-4 w-4" /> Novo projeto
-                </Button>
-              </div>
+              <ProjectList />
             </div>
           </SidebarContent>
         </Sidebar>
