@@ -16,7 +16,7 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { User, Menu, Award } from 'lucide-react';
+import { User, Award } from 'lucide-react';
 import { ProjectList } from '@/components/projects/ProjectList';
 
 const DashboardPage = () => {
@@ -60,15 +60,12 @@ const DashboardPage = () => {
           <SidebarContent className="p-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton className="w-full px-4 py-3 hover:bg-gray-800 text-gray-300">
+                <SidebarMenuButton 
+                  className="w-full px-4 py-3 hover:bg-gray-800 text-gray-300"
+                  onClick={() => navigate('/profile')}
+                >
                   <User className="h-5 w-5" />
                   <span>Perfil</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="w-full px-4 py-3 hover:bg-gray-800 text-gray-300">
-                  <Menu className="h-5 w-5" />
-                  <span>Menu</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
