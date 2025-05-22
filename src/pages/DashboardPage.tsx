@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,8 @@ import {
   SidebarMenuSub,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { User, Plus, Menu, BarChart, Award } from 'lucide-react';
+import { User, Plus, Menu, BarChart, Award, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -45,7 +45,16 @@ const DashboardPage = () => {
     { id: 'c', name: 'Projeto C' },
   ];
   
-  const [projects, setProjects] = useState(initialProjects);
+  // Filter out projects after 'D'
+  const filteredProjects = initialProjects.filter(project => {
+    // Keep only projects with IDs 'a', 'b', 'c', or 'd'
+    return ['a', 'b', 'c', 'd'].includes(project.id);
+  });
+  
+  // Save the filtered projects to localStorage
+  localStorage.setItem('projects', JSON.stringify(filteredProjects));
+  
+  const [projects, setProjects] = useState(filteredProjects);
   
   const rewards = [
     { id: 1, name: 'Recompensa 1' },
@@ -94,6 +103,22 @@ const DashboardPage = () => {
     });
   };
   
+  const handleDeleteProject = (projectId: string, projectName: string) => {
+    // Filter out the project to remove
+    const updatedProjects = projects.filter(project => project.id !== projectId);
+    
+    // Update state
+    setProjects(updatedProjects);
+    
+    // Save to localStorage
+    localStorage.setItem('projects', JSON.stringify(updatedProjects));
+    
+    toast({
+      title: "Projeto removido",
+      description: `O projeto "${projectName}" foi removido com sucesso.`,
+    });
+  };
+  
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-gray-950 text-white overflow-hidden">
@@ -124,10 +149,42 @@ const DashboardPage = () => {
                 {projects.map((project) => (
                   <div 
                     key={project.id} 
-                    className="bg-gray-800 p-3 rounded-md text-center hover:bg-gray-700 cursor-pointer transition-colors"
-                    onClick={() => handleProjectClick(project.id)}
+                    className="bg-gray-800 p-3 rounded-md flex justify-between items-center hover:bg-gray-700 transition-colors"
                   >
-                    {project.name}
+                    <div 
+                      className="flex-1 cursor-pointer text-center"
+                      onClick={() => handleProjectClick(project.id)}
+                    >
+                      {project.name}
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-7 w-7 hover:bg-gray-600"
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-400" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-gray-800 border-gray-700 text-white">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover projeto</AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-300">
+                            Tem certeza que deseja remover o projeto "{project.name}"? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={() => handleDeleteProject(project.id, project.name)}
+                          >
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 ))}
                 <Button 
