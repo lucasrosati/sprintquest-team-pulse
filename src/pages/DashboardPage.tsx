@@ -57,6 +57,10 @@ const DashboardPage = () => {
     });
   };
   
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/project/${projectId}`);
+  };
+  
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-gray-950 text-white overflow-hidden">
@@ -85,7 +89,11 @@ const DashboardPage = () => {
               <h3 className="mb-3 text-sm font-semibold text-gray-300">Projetos</h3>
               <div className="space-y-2">
                 {projects.map((project) => (
-                  <div key={project.id} className="bg-gray-800 p-3 rounded-md text-center hover:bg-gray-700 cursor-pointer transition-colors">
+                  <div 
+                    key={project.id} 
+                    className="bg-gray-800 p-3 rounded-md text-center hover:bg-gray-700 cursor-pointer transition-colors"
+                    onClick={() => handleProjectClick(project.id)}
+                  >
                     {project.name}
                   </div>
                 ))}
