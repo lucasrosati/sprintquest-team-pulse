@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, Plus, Save } from 'lucide-react';
+import { Edit, LogOut, Plus, Save } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -21,26 +20,21 @@ const AdminDashboardPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [rewards, setRewards] = useState<Reward[]>([
-    { id: '1', description: 'Descrição da recompensa', points: 10000, isEditing: false },
-    { id: '2', description: 'Descrição da recompensa', points: 20000, isEditing: false },
-    { id: '3', description: 'Descrição da recompensa', points: 30000, isEditing: false },
+    { id: '1', description: 'Alexa', points: 10000, isEditing: false },
+    { id: '2', description: 'JBL', points: 20000, isEditing: false },
+    { id: '3', description: 'iPhone 16 Pro Max', points: 30000, isEditing: false },
+    { id: '4', description: 'Macbook Pro M4', points: 100000, isEditing: false },
+    { id: '5', description: 'Nova recompensa', points: 5000, isEditing: false },
   ]);
-  const [selectedReward, setSelectedReward] = useState<string | null>(null);
   
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/admin-login');
   };
-
-  const handleBackClick = () => {
-    setSelectedReward(null);
-  };
   
-  const toggleEditMode = (id: string) => {
-    setRewards(rewards.map(reward => 
-      reward.id === id ? { ...reward, isEditing: !reward.isEditing } : reward
-    ));
+  const toggleEditMode = () => {
+    setRewards(rewards.map(reward => ({ ...reward, isEditing: true })));
   };
 
   const updateRewardDescription = (id: string, description: string) => {
@@ -65,8 +59,6 @@ const AdminDashboardPage = () => {
   };
 
   const saveChanges = () => {
-    // Here you would typically send the data to your backend API
-    // For now, we'll just show a success message
     setRewards(rewards.map(reward => ({ ...reward, isEditing: false })));
     toast({
       title: "Alterações salvas",
@@ -74,86 +66,6 @@ const AdminDashboardPage = () => {
     });
   };
 
-  // Reward detail view
-  if (selectedReward) {
-    const reward = rewards.find(r => r.id === selectedReward) || rewards[0];
-    
-    return (
-      <div className="min-h-screen bg-background p-4 md:p-8">
-        <div className="max-w-3xl mx-auto">
-          <header className="flex items-center mb-8">
-            <Button 
-              variant="ghost" 
-              className="p-2 mr-4" 
-              onClick={handleBackClick}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-2xl font-bold flex-grow text-center">Admin</h1>
-          </header>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center font-medium">Recompensa</div>
-            <div className="text-center font-medium">Pontuação necessária</div>
-          </div>
-          
-          <div className="space-y-4">
-            {rewards.map((item) => (
-              <div key={item.id} className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-200 dark:bg-gray-700 p-4 rounded-md">
-                  {item.isEditing ? (
-                    <Textarea
-                      value={item.description}
-                      onChange={(e) => updateRewardDescription(item.id, e.target.value)}
-                      className="w-full bg-white dark:bg-gray-800"
-                    />
-                  ) : (
-                    <div className="text-center">{item.description}</div>
-                  )}
-                </div>
-                <div className={`p-4 rounded-md ${item.id === '1' ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gray-400 dark:bg-gray-600'}`}>
-                  {item.isEditing ? (
-                    <Input
-                      type="number"
-                      value={item.points}
-                      onChange={(e) => updateRewardPoints(item.id, e.target.value)}
-                      className="text-center w-full bg-white dark:bg-gray-800"
-                    />
-                  ) : (
-                    <div className="text-center">{item.points}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-            
-            <div className="grid grid-cols-1">
-              <Button 
-                variant="outline" 
-                className="bg-gray-200 dark:bg-gray-700 p-4 h-auto flex items-center justify-center gap-2"
-                onClick={addNewReward}
-              >
-                Adicionar recompensa <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="flex justify-end mt-6 space-x-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setRewards(rewards.map(r => ({ ...r, isEditing: true })))}
-              >
-                Editar
-              </Button>
-              <Button onClick={saveChanges}>
-                <Save className="h-4 w-4 mr-2" /> Salvar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // Main dashboard view with rewards list
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -169,26 +81,69 @@ const AdminDashboardPage = () => {
           </div>
         </header>
         
-        {/* Rewards Section */}
+        {/* Rewards Section with direct editing */}
         <Card className="mb-8 bg-gray-100 dark:bg-gray-800">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Recompensas</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="text-center font-medium">Recompensa</div>
+              <div className="text-center font-medium">Pontuação necessária</div>
+            </div>
+            
             <div className="space-y-4">
-              {rewards.map((reward) => (
-                <div 
-                  key={reward.id}
-                  className="flex items-center space-x-2 bg-white dark:bg-gray-700 p-4 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                  onClick={() => setSelectedReward(reward.id)}
-                >
-                  <div className="flex-1">
-                    <span className="text-base font-medium">
-                      Recompensa {reward.id}
-                    </span>
+              {rewards.map((item) => (
+                <div key={item.id} className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-200 dark:bg-gray-700 p-4 rounded-md">
+                    {item.isEditing ? (
+                      <Textarea
+                        value={item.description}
+                        onChange={(e) => updateRewardDescription(item.id, e.target.value)}
+                        className="w-full bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <div className="text-center">{item.description}</div>
+                    )}
+                  </div>
+                  <div className="bg-gray-200 dark:bg-gray-700 p-4 rounded-md">
+                    {item.isEditing ? (
+                      <Input
+                        type="number"
+                        value={item.points}
+                        onChange={(e) => updateRewardPoints(item.id, e.target.value)}
+                        className="text-center w-full bg-white dark:bg-gray-800"
+                      />
+                    ) : (
+                      <div className="text-center">{item.points}</div>
+                    )}
                   </div>
                 </div>
               ))}
+            </div>
+            
+            <div className="grid grid-cols-1 mt-4">
+              <Button 
+                variant="outline" 
+                className="bg-gray-200 dark:bg-gray-700 p-4 h-auto flex items-center justify-center gap-2"
+                onClick={addNewReward}
+              >
+                Adicionar recompensa <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex justify-end mt-6 space-x-4">
+              <Button 
+                variant="outline" 
+                onClick={toggleEditMode}
+              >
+                <Edit className="h-4 w-4 mr-2" /> Editar
+              </Button>
+              <Button 
+                onClick={saveChanges}
+              >
+                <Save className="h-4 w-4 mr-2" /> Salvar
+              </Button>
             </div>
           </CardContent>
         </Card>
