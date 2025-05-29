@@ -1,57 +1,57 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import KanbanBoard from '@/components/KanbanBoard';
+import { useProject } from '@/hooks/useProjects';
+import { useMembers } from '@/hooks/useMembers';
 import { toast } from 'sonner';
-
-interface Ranking {
-  position: number;
-  name: string;
-  points: number;
-}
 
 const ProjectDetailsPage = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [isKanbanOpen, setIsKanbanOpen] = useState(false);
-  const [rankings, setRankings] = useState<Ranking[]>([]);
-  const [rankingsLoading, setRankingsLoading] = useState(true);
   
-  // Mock data for project details - in a real app this would come from an API
-  // Based on the projectId
-  const projectName = 
-    projectId === 'a' ? 'Projeto A' :
-    projectId === 'b' ? 'Projeto B' :
-    projectId === 'c' ? 'Projeto C' : 'Projeto';
-    
-  useEffect(() => {
-    const fetchRankings = async () => {
-      try {
-        // In a real implementation, this would be API calls to fetch rankings
-        // For now, we'll simulate fetching rankings based on the project ID
-        
-        // Simulated API response for rankings
-        const rankingsData = [
-          { position: 1, name: 'Equipe Alpha', points: 10000 },
-          { position: 2, name: 'Equipe Beta', points: 8000 },
-          { position: 3, name: 'Equipe Gamma', points: 7000 },
-        ];
-        
-        setRankings(rankingsData);
-      } catch (error) {
-        console.error('Error fetching rankings:', error);
-        toast.error('Falha ao carregar os rankings');
-      } finally {
-        setRankingsLoading(false);
-      }
-    };
+  // Use real data from backend
+  const { data: project, isLoading: projectLoading } = useProject(Number(projectId));
+  const { data: members = [], isLoading: membersLoading } = useMembers();
+  
+  // Calculate rankings from real member data
+  const rankings = members
+    .map((member, index) => ({
+      position: index + 1,
+      name: member.name,
+      points: member.individualScore || 0,
+    }))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 3); // Top 3 for this view
 
-    fetchRankings();
-  }, [projectId]);
+  // Calculate team score from members
+  const teamScore = members.reduce((total, member) => total + (member.individualScore || 0), 0);
+
+  if (projectLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <p>Carregando projeto...</p>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="mb-4">Projeto não encontrado</p>
+          <Button onClick={() => navigate('/dashboard')}>
+            Voltar ao Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -65,7 +65,7 @@ const ProjectDetailsPage = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold text-center flex-1">{projectName}</h1>
+          <h1 className="text-2xl font-bold text-center flex-1">{project.name}</h1>
         </div>
       </header>
       
@@ -79,8 +79,7 @@ const ProjectDetailsPage = () => {
             </CardHeader>
             <CardContent className="flex items-center justify-center h-full">
               <div className="text-center text-white">
-                {/* This would be a real chart or visualization in a full implementation */}
-                <p className="text-5xl font-bold text-sprint-primary">850</p>
+                <p className="text-5xl font-bold text-sprint-primary">{teamScore}</p>
                 <p className="mt-2 text-gray-400">pontos totais</p>
               </div>
             </CardContent>
@@ -93,7 +92,7 @@ const ProjectDetailsPage = () => {
             </CardHeader>
             <CardContent className="flex items-center justify-center h-full">
               <div className="text-center text-white w-full">
-                {/* This would be a real progress chart in a full implementation */}
+                {/* Mock progress - you can enhance this with real task completion data */}
                 <div className="h-8 bg-gray-700 rounded-full overflow-hidden w-full">
                   <div 
                     className="h-full bg-sprint-primary" 
@@ -111,22 +110,26 @@ const ProjectDetailsPage = () => {
           {/* Weekly Ranking */}
           <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardHeader className="border-b border-gray-700">
-              <CardTitle className="text-center text-xl text-white">Ranking Semanal</CardTitle>
+              <CardTitle className="text-center text-xl text-white">Ranking da Equipe</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-4">
-                {rankingsLoading ? (
+                {membersLoading ? (
                   <p className="text-center text-sm">Carregando...</p>
                 ) : rankings.length > 0 ? (
                   rankings.map((rank) => (
                     <div key={rank.position} className="bg-gray-700 p-4 rounded-md">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <span className="text-xl font-bold mr-4">{rank.position}.</span>
+                          <span className="text-xl font-bold mr-4 text-sprint-primary">
+                            {rank.position}.
+                          </span>
                           <div className="h-8 w-8 rounded-full bg-gray-600 mr-3"></div>
                           <span>{rank.name}</span>
                         </div>
-                        <span className="font-bold">{rank.points.toLocaleString()}</span>
+                        <span className="font-bold text-sprint-accent">
+                          {rank.points.toLocaleString()} pts
+                        </span>
                       </div>
                     </div>
                   ))
@@ -164,7 +167,7 @@ const ProjectDetailsPage = () => {
         <DialogContent className="bg-gray-850 text-white border-gray-700 max-w-6xl h-[80vh] flex flex-col">
           <DialogHeader className="border-b border-gray-700 pb-4">
             <DialogTitle className="text-xl text-white flex justify-between items-center">
-              <span>Quadro Kanban - {projectName}</span>
+              <span>Quadro Kanban - {project.name}</span>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -176,7 +179,7 @@ const ProjectDetailsPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-1">
-            <KanbanBoard />
+            <KanbanBoard projectId={Number(projectId)} />
           </div>
         </DialogContent>
       </Dialog>
