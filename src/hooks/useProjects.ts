@@ -1,7 +1,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/services/projectService';
-import { CreateProjectRequest, CreateTaskRequest } from '@/types/Project';
+import { CreateProjectRequest } from '@/types/Project';
+import { CreateTaskRequest } from '@/types/Task';
 import { toast } from 'sonner';
 
 export const useProjects = () => {

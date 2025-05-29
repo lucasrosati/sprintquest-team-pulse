@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card,
@@ -58,7 +57,11 @@ const initialColumns: Column[] = [
   },
 ];
 
-const KanbanBoard = () => {
+interface KanbanBoardProps {
+  projectId: number;
+}
+
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId }) => {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [editingTask, setEditingTask] = useState<{columnId: string, taskId: string} | null>(null);
   const [editedTitle, setEditedTitle] = useState<string>('');
@@ -68,6 +71,8 @@ const KanbanBoard = () => {
   // State for the create task dialog
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
+
+  console.log('KanbanBoard projectId:', projectId); // For debugging
 
   const handleAddTask = (columnId: string) => {
     setActiveColumnId(columnId);
