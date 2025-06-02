@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,50 +12,19 @@ import { toast } from 'sonner';
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
-  const [showAllProjects, setShowAllProjects] = useState(false);
   
-  // Use real data from backend with proper fallbacks
-  const { data: projectsData, isLoading: projectsLoading, error: projectsError } = useProjects();
-  const { data: membersData, isLoading: membersLoading, error: membersError } = useMembers();
+  // Use real data from backend
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
+  const { data: members = [], isLoading: membersLoading } = useMembers();
   const createProjectMutation = useCreateProject();
-
-  // Ensure data is always an array and log what we receive
-  const projects = React.useMemo(() => {
-    console.log('📊 Raw projects data:', projectsData);
-    if (Array.isArray(projectsData)) {
-      console.log('✅ Projects is array with', projectsData.length, 'items');
-      return projectsData;
-    }
-    console.log('⚠️ Projects data is not an array:', typeof projectsData);
-    return [];
-  }, [projectsData]);
-
-  const members = React.useMemo(() => {
-    console.log('👥 Raw members data:', membersData);
-    if (Array.isArray(membersData)) {
-      console.log('✅ Members is array with', membersData.length, 'items');
-      return membersData;
-    }
-    console.log('⚠️ Members data is not an array:', typeof membersData);
-    return [];
-  }, [membersData]);
-
-  // Log errors if any
-  useEffect(() => {
-    if (projectsError) {
-      console.error('❌ Projects error:', projectsError);
-    }
-    if (membersError) {
-      console.error('❌ Members error:', membersError);
-    }
-  }, [projectsError, membersError]);
 
   const handleCreateProject = async (projectData: { name: string; type: string; description: string }) => {
     try {
+      // For now, we'll use teamId 101 as default, you might want to get this from user context
       await createProjectMutation.mutateAsync({
         name: projectData.name,
         description: projectData.description,
-        teamId: 101
+        teamId: 101 // Default team ID - you should get this from user context
       });
       setIsCreateProjectOpen(false);
     } catch (error) {
@@ -65,21 +34,14 @@ const DashboardPage = () => {
   };
 
   // Calculate rankings from real member data
-  const rankings = React.useMemo(() => {
-    return members
-      .filter(member => member && typeof member === 'object')
-      .map((member, index) => ({
-        position: index + 1,
-        name: member.name || 'Nome não informado',
-        points: member.individualScore || 0,
-      }))
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 5);
-  }, [members]);
-
-  // Control how many projects to show
-  const projectsToShow = showAllProjects ? projects : projects.slice(0, 5);
-  const hasMoreProjects = projects.length > 5;
+  const rankings = members
+    .map((member, index) => ({
+      position: index + 1,
+      name: member.name,
+      points: member.individualScore || 0,
+    }))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 5); // Top 5
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -112,7 +74,7 @@ const DashboardPage = () => {
           <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-center text-xl text-white flex items-center justify-between">
-                <span>Meus Projetos ({projects.length})</span>
+                <span>Meus Projetos</span>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -126,11 +88,9 @@ const DashboardPage = () => {
             <CardContent className="pt-6">
               {projectsLoading ? (
                 <p className="text-center text-sm">Carregando projetos...</p>
-              ) : projectsError ? (
-                <p className="text-center text-sm text-red-400">Erro ao carregar projetos</p>
               ) : projects.length > 0 ? (
                 <div className="space-y-3">
-                  {projectsToShow.map((project) => (
+                  {projects.slice(0, 3).map((project) => (
                     <div 
                       key={project.id} 
                       className="bg-gray-700 p-4 rounded-md cursor-pointer hover:bg-gray-650 transition-colors"
@@ -138,28 +98,12 @@ const DashboardPage = () => {
                     >
                       <h3 className="font-medium">{project.name}</h3>
                       <p className="text-sm text-gray-400 mt-1">{project.description}</p>
-                      {project.team && (
-                        <p className="text-xs text-gray-500 mt-2">Team: {project.team.name}</p>
-                      )}
                     </div>
                   ))}
-                  {hasMoreProjects && !showAllProjects && (
-                    <Button
-                      variant="ghost"
-                      className="w-full text-gray-400 hover:text-white hover:bg-gray-700"
-                      onClick={() => setShowAllProjects(true)}
-                    >
-                      Mostrar todos os {projects.length} projetos
-                    </Button>
-                  )}
-                  {showAllProjects && hasMoreProjects && (
-                    <Button
-                      variant="ghost"
-                      className="w-full text-gray-400 hover:text-white hover:bg-gray-700"
-                      onClick={() => setShowAllProjects(false)}
-                    >
-                      Mostrar menos
-                    </Button>
+                  {projects.length > 3 && (
+                    <p className="text-sm text-center text-gray-400 mt-4">
+                      +{projects.length - 3} projetos adicionais
+                    </p>
                   )}
                 </div>
               ) : (
@@ -188,8 +132,6 @@ const DashboardPage = () => {
             <CardContent className="pt-6">
               {membersLoading ? (
                 <p className="text-center text-sm">Carregando membros...</p>
-              ) : membersError ? (
-                <p className="text-center text-sm text-red-400">Erro ao carregar membros</p>
               ) : members.length > 0 ? (
                 <div className="space-y-3">
                   {members.slice(0, 5).map((member) => (
