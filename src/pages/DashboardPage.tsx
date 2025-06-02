@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
   
   // Use real data from backend
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
@@ -42,6 +43,10 @@ const DashboardPage = () => {
     }))
     .sort((a, b) => b.points - a.points)
     .slice(0, 5); // Top 5
+
+  // Control how many projects to show
+  const projectsToShow = showAllProjects ? projects : projects.slice(0, 5);
+  const hasMoreProjects = projects.length > 5;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -74,7 +79,7 @@ const DashboardPage = () => {
           <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-center text-xl text-white flex items-center justify-between">
-                <span>Meus Projetos</span>
+                <span>Meus Projetos ({projects.length})</span>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -90,7 +95,7 @@ const DashboardPage = () => {
                 <p className="text-center text-sm">Carregando projetos...</p>
               ) : projects.length > 0 ? (
                 <div className="space-y-3">
-                  {projects.slice(0, 3).map((project) => (
+                  {projectsToShow.map((project) => (
                     <div 
                       key={project.id} 
                       className="bg-gray-700 p-4 rounded-md cursor-pointer hover:bg-gray-650 transition-colors"
@@ -98,12 +103,28 @@ const DashboardPage = () => {
                     >
                       <h3 className="font-medium">{project.name}</h3>
                       <p className="text-sm text-gray-400 mt-1">{project.description}</p>
+                      {project.team && (
+                        <p className="text-xs text-gray-500 mt-2">Team: {project.team.name}</p>
+                      )}
                     </div>
                   ))}
-                  {projects.length > 3 && (
-                    <p className="text-sm text-center text-gray-400 mt-4">
-                      +{projects.length - 3} projetos adicionais
-                    </p>
+                  {hasMoreProjects && !showAllProjects && (
+                    <Button
+                      variant="ghost"
+                      className="w-full text-gray-400 hover:text-white hover:bg-gray-700"
+                      onClick={() => setShowAllProjects(true)}
+                    >
+                      Mostrar todos os {projects.length} projetos
+                    </Button>
+                  )}
+                  {showAllProjects && hasMoreProjects && (
+                    <Button
+                      variant="ghost"
+                      className="w-full text-gray-400 hover:text-white hover:bg-gray-700"
+                      onClick={() => setShowAllProjects(false)}
+                    >
+                      Mostrar menos
+                    </Button>
                   )}
                 </div>
               ) : (
