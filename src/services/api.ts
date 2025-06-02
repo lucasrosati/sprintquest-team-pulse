@@ -1,25 +1,15 @@
-
 import axios from 'axios';
 
-// Create an instance of axios with default configuration
-const api = axios.create({
-  baseURL: 'http://localhost:8080', // Your backend URL
-  headers: {
-    'Content-Type': 'application/json',
-  },
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,   // 👈 usa o .env
+  headers: { 'Content-Type': 'application/json' }
 });
 
-// Add request interceptor to include auth token in headers
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+api.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token');
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
+});
 
 // Add response interceptor for better error handling
 api.interceptors.response.use(
