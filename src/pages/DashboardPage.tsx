@@ -14,10 +14,17 @@ const DashboardPage = () => {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
   
-  // Use real data from backend
-  const { data: projects = [], isLoading: projectsLoading } = useProjects();
-  const { data: members = [], isLoading: membersLoading } = useMembers();
+  // Use real data from backend with proper fallbacks
+  const { data: projectsData = [], isLoading: projectsLoading } = useProjects();
+  const { data: membersData = [], isLoading: membersLoading } = useMembers();
   const createProjectMutation = useCreateProject();
+
+  // Ensure projects is always an array
+  const projects = Array.isArray(projectsData) ? projectsData : [];
+  const members = Array.isArray(membersData) ? membersData : [];
+
+  console.log('Projects data:', projects);
+  console.log('Members data:', members);
 
   const handleCreateProject = async (projectData: { name: string; type: string; description: string }) => {
     try {
@@ -34,11 +41,12 @@ const DashboardPage = () => {
     }
   };
 
-  // Calculate rankings from real member data
+  // Calculate rankings from real member data with proper array handling
   const rankings = members
+    .filter(member => member && typeof member === 'object') // Filter out invalid members
     .map((member, index) => ({
       position: index + 1,
-      name: member.name,
+      name: member.name || 'Nome não informado',
       points: member.individualScore || 0,
     }))
     .sort((a, b) => b.points - a.points)
