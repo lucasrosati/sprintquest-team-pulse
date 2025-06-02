@@ -1,14 +1,12 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import authService from '@/services/authService';
+import authService, { RegisterData } from '@/services/authService';
 
 const RegisterForm: React.FC = () => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,15 +26,25 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await authService.register({
-        firstName,
-        lastName,
+      const userData: RegisterData = {
+        name,
         email,
         password
-      });
+      };
+
+      const response = await authService.register(userData);
       
       // Store auth data
       localStorage.setItem('token', response.token);
@@ -44,16 +52,18 @@ const RegisterForm: React.FC = () => {
       
       toast({
         title: "Cadastro realizado com sucesso",
-        description: "Você está sendo redirecionado para o dashboard.",
+        description: "Você está sendo redirecionado para a página inicial.",
       });
       
-      navigate('/dashboard');
-    } catch (error) {
+      // Redirecionar para a página inicial
+      navigate('/');
+      
+    } catch (error: any) { // Mantido 'any' para simplificar a demonstração, idealmente seria 'unknown' com tratamento mais robusto
       console.error('Registration error:', error);
       toast({
         variant: "destructive",
         title: "Erro no cadastro",
-        description: "Não foi possível completar seu cadastro. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível completar seu cadastro. Tente novamente.",
       });
     } finally {
       setIsLoading(false);
@@ -67,24 +77,15 @@ const RegisterForm: React.FC = () => {
         <h2 className="text-xl mb-8 text-foreground">Cadastre-se!</h2>
         
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              type="text"
-              placeholder="Nome"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              required
-              className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
-            />
-            <Input
-              type="text"
-              placeholder="Sobrenome"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              required
-              className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="Nome completo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            minLength={3}
+            className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
+          />
           
           <Input
             type="email"
@@ -101,6 +102,7 @@ const RegisterForm: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            minLength={6}
             className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
           
@@ -110,6 +112,7 @@ const RegisterForm: React.FC = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
+            minLength={6}
             className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
           
@@ -119,7 +122,7 @@ const RegisterForm: React.FC = () => {
             className="w-full h-10"
             disabled={isLoading}
           >
-            {isLoading ? 'Carregando...' : 'Avançar'}
+            {isLoading ? 'Carregando...' : 'Cadastrar'}
           </Button>
           
           <div className="text-center mt-4">
@@ -132,16 +135,6 @@ const RegisterForm: React.FC = () => {
             </Button>
           </div>
         </form>
-        
-        <div className="mt-auto py-4">
-          <Button 
-            variant="outline" 
-            className="text-xs text-foreground border-input"
-            onClick={() => navigate('/admin-login')}
-          >
-            Login administrador
-          </Button>
-        </div>
       </div>
     </div>
   );

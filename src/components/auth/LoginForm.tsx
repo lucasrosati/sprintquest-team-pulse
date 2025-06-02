@@ -1,18 +1,15 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import authService from '@/services/authService';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -21,34 +18,19 @@ const LoginForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Bypass authentication - simulate response
-      const mockUser = {
-        id: '123',
-        firstName: 'Usuário',
-        lastName: 'Teste',
-        email: email || 'usuario@exemplo.com',
-        role: isAdmin ? 'admin' : 'user'
-      };
-      
-      // Mock token
-      const mockToken = 'mock-jwt-token';
+      const response = await authService.login({ email, password });
       
       // Store auth data
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify({...mockUser, isAdmin}));
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
       
-      // Add a small delay to simulate API call
-      setTimeout(() => {
-        toast({
-          title: "Login bem-sucedido",
-          description: "Você está sendo redirecionado para o dashboard.",
-        });
-        
-        // Redirect based on admin status
-        navigate(isAdmin ? '/admin-dashboard' : '/dashboard');
-        
-        setIsLoading(false);
-      }, 500);
+      toast({
+        title: "Login bem-sucedido",
+        description: "Você está sendo redirecionado para o dashboard.",
+      });
+      
+      // Redirect based on admin status
+      navigate(response.user.isAdmin ? '/admin-dashboard' : '/dashboard');
       
     } catch (error) {
       console.error('Login error:', error);
@@ -57,6 +39,7 @@ const LoginForm: React.FC = () => {
         title: "Erro ao fazer login",
         description: "Verifique suas credenciais e tente novamente.",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -83,6 +66,7 @@ const LoginForm: React.FC = () => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
               className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
             />
             <Input
@@ -90,16 +74,8 @@ const LoginForm: React.FC = () => {
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
               className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
-          
-          <div className="flex items-center justify-between py-2">
-            <Label htmlFor="admin-mode" className="text-sm">Modo Administrador</Label>
-            <Switch
-              id="admin-mode"
-              checked={isAdmin}
-              onCheckedChange={setIsAdmin}
             />
           </div>
           
@@ -108,10 +84,10 @@ const LoginForm: React.FC = () => {
             className="w-full h-10"
             disabled={isLoading}
           >
-            {isLoading ? 'Carregando...' : 'Avançar'}
+            {isLoading ? 'Carregando...' : 'Entrar'}
           </Button>
           
-          <div className="text-center mt-4">
+          <div className="text-center">
             <Button 
               variant="link" 
               className="text-sm text-primary"
