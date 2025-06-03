@@ -24,6 +24,7 @@ interface KanbanBoardProps {
   updateTask: (data: any) => Promise<any>;
   moveTask: (data: any) => Promise<any>;
   deleteTask: (taskId: number) => Promise<any>;
+  isTeamLeader: boolean;
 }
 
 export function KanbanBoard({
@@ -34,6 +35,7 @@ export function KanbanBoard({
   updateTask,
   moveTask,
   deleteTask,
+  isTeamLeader,
 }: KanbanBoardProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -104,18 +106,17 @@ export function KanbanBoard({
     console.log('Usuário atual:', currentUser);
     console.log('Task assignedMemberId:', task.assignedMemberId);
     console.log('Current user memberId:', currentUser?.memberId);
+    console.log('Usuário é líder da equipe?', isTeamLeader);
 
-    // Verifica se o usuário atual é o responsável pela task
-    const isTaskOwner = task.assignedMemberId === currentUser?.memberId;
-    console.log('É dono da task?', isTaskOwner);
+    const canMoveTask = task.assignedMemberId === currentUser?.memberId || isTeamLeader;
+    console.log('Pode mover a task?', canMoveTask);
 
-    if (!isTaskOwner) {
-      console.warn('Tentativa de mover task não pertencente ao usuário atual.');
-      toast.error('Você só pode mover suas próprias tarefas');
+    if (!canMoveTask) {
+      console.warn('Tentativa de mover task sem permissão.');
+      toast.error('Você só pode mover suas próprias tarefas ou ser o líder da equipe para mover outras.');
       return;
     }
 
-    // Se chegou aqui, o usuário é o dono e a task foi movida para uma nova posição/coluna
     console.log('Movendo task para:', destination.droppableId);
 
     try {
@@ -127,7 +128,6 @@ export function KanbanBoard({
       console.log('moveTask chamado com sucesso.');
     } catch (error) {
       console.error('Erro ao chamar moveTask:', error);
-      // O onError do useTasks hook já trata o toast de erro e a reversão otimista
     }
   };
 
@@ -204,12 +204,15 @@ export function KanbanBoard({
                       const isTaskOwner = task.assignedMemberId === currentUser?.memberId;
                       console.log('É dono da task?', isTaskOwner);
 
+                      const isDragDisabled = !(isTaskOwner || isTeamLeader);
+                      console.log('Arrasto desabilitado?', isDragDisabled);
+
                       return (
                         <Draggable
                           key={task.id}
                           draggableId={task.id.toString()}
                           index={index}
-                          isDragDisabled={!isTaskOwner}
+                          isDragDisabled={isDragDisabled}
                         >
                           {(provided) => (
                             <Card
@@ -217,12 +220,12 @@ export function KanbanBoard({
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
                               className={`bg-card transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] ${
-                                isTaskOwner ? 'border-primary' : 'border-muted'
+                                task.assignedMemberId === currentUser?.memberId ? 'border-primary' : 'border-muted'
                               }`}
                               style={{
                                 ...provided.draggableProps.style,
                                 transition: 'transform 0.2s ease-in-out',
-                                opacity: isTaskOwner ? 1 : 0.8
+                                opacity: (isTaskOwner || isTeamLeader) ? 1 : 0.6
                               }}
                             >
                               <CardHeader className="p-3">
@@ -230,7 +233,7 @@ export function KanbanBoard({
                                   <CardTitle className="text-sm font-medium">
                                     {task.title}
                                   </CardTitle>
-                                  {isTaskOwner && (
+                                  {(isTaskOwner || isTeamLeader) && (
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <Button
@@ -250,7 +253,7 @@ export function KanbanBoard({
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => handleDeleteTask(task.id)}
-                                          className="text-destructive"
+                                          className="text-red-600 focus:text-red-600"
                                         >
                                           <Trash2 className="mr-2 h-4 w-4" />
                                           Excluir
@@ -302,11 +305,11 @@ export function KanbanBoard({
 
       {editingTask && (
         <EditTaskDialog
-          open={!!editingTask}
-          onOpenChange={(open) => !open && setEditingTask(null)}
           task={editingTask}
-          onSubmit={handleUpdateTask}
           projectMembers={projectMembers}
+          onClose={() => setEditingTask(null)}
+          onSubmit={handleUpdateTask}
+          projectId={projectId}
         />
       )}
     </div>

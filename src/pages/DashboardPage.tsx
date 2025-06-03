@@ -8,6 +8,8 @@ import { useProjects, useCreateProject } from '@/hooks/useProjects';
 import { useMembers } from '@/hooks/useMembers';
 import { toast } from 'sonner';
 import { TeamMembersDialog } from '@/components/teams/TeamMembersDialog';
+import { useQuery } from '@tanstack/react-query';
+import { teamService } from '@/services/teamService';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -24,6 +26,17 @@ const DashboardPage = () => {
   const { data: allMembers = [], isLoading: allMembersLoading } = useMembers();
   // Usando useMembers com teamId para os membros da equipe
   const { data: teamMembers = [], isLoading: teamMembersLoading } = useMembers(user?.teamId);
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => teamService.getAll(),
+  });
+
+  const isTeamLeader = useMemo(() => {
+    if (!user || !teams) return false;
+    const userTeam = teams.find(team => team.id.value === user.teamId);
+    return userTeam?.leaderId?.value === user.memberId;
+  }, [user, teams]);
+
   const createProjectMutation = useCreateProject();
 
   const handleCreateProject = async (projectData: { name: string; type: string; description: string }) => {
@@ -103,17 +116,30 @@ const DashboardPage = () => {
                       <p className="text-sm text-gray-400 mt-1">{project.description}</p>
                     </div>
                   ))}
+                  {isTeamLeader && (
+                    <Button 
+                      onClick={() => setIsCreateProjectOpen(true)}
+                      className="w-full bg-sprint-primary hover:bg-sprint-accent mt-4"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Projeto
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-400 mb-4">Nenhum projeto encontrado</p>
-                  <Button 
-                    onClick={() => setIsCreateProjectOpen(true)}
-                    className="bg-sprint-primary hover:bg-sprint-accent"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar primeiro projeto
-                  </Button>
+                  {isTeamLeader ? (
+                    <Button 
+                      onClick={() => setIsCreateProjectOpen(true)}
+                      className="bg-sprint-primary hover:bg-sprint-accent"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar primeiro projeto
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-gray-400">Apenas o líder da equipe pode criar projetos.</p>
+                  )}
                 </div>
               )}
             </CardContent>

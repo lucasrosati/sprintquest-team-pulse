@@ -45,22 +45,19 @@ export function CreateTaskDialog({
 
     setIsSubmitting(true);
     try {
-      const taskData = {
+      const taskData: CreateTaskRequest = {
         title: title.trim(),
         description: description.trim(),
         points: points ? parseInt(points) : 0,
         kanbanColumn: 'backlog' as ColumnId,
         projectId: projectId,
+        assignedMemberId: parseInt(assignedMemberId),
       };
 
       console.log('Criando task com dados:', taskData);
-      const createdTask = await onSubmit(taskData);
-
-      if (createdTask?.id) {
-        console.log('Atribuindo membro à task:', assignedMemberId);
-        await taskService.assignTask(createdTask.id, parseInt(assignedMemberId));
-      }
       
+      await onSubmit(taskData);
+
       setTitle('');
       setDescription('');
       setPoints('');
@@ -68,7 +65,6 @@ export function CreateTaskDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
-      toast.error('Erro ao criar tarefa');
     } finally {
       setIsSubmitting(false);
     }

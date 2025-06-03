@@ -20,6 +20,7 @@ interface CreateChallengeDialogProps {
   onOpenChange: (open: boolean) => void;
   projectId: number;
   createdBy: number;
+  onSubmit: (data: CreateChallengeRequest) => Promise<void>;
 }
 
 export function CreateChallengeDialog({
@@ -27,6 +28,7 @@ export function CreateChallengeDialog({
   onOpenChange,
   projectId,
   createdBy,
+  onSubmit,
 }: CreateChallengeDialogProps) {
   const [title, setTitle] = useState("");
   const [criteria, setCriteria] = useState("");
@@ -67,14 +69,8 @@ export function CreateChallengeDialog({
         createdBy,
       };
 
-      await challengeService.create(challengeData);
+      await onSubmit(challengeData);
       
-      toast({
-        title: "Sucesso!",
-        description: "Desafio criado com sucesso!",
-      });
-
-      // Reset form
       setTitle("");
       setCriteria("");
       setDeadline("");
@@ -82,11 +78,7 @@ export function CreateChallengeDialog({
       setExtraPoints("10");
       onOpenChange(false);
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar o desafio. Tente novamente.",
-        variant: "destructive",
-      });
+      console.error("Erro no handleSubmit do dialog:", error);
     }
   };
 
@@ -113,6 +105,7 @@ export function CreateChallengeDialog({
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
               className="bg-gray-700 border-gray-600 text-white"
+              type="date"
             />
           </div>
           
