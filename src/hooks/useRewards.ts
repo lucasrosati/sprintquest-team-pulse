@@ -2,11 +2,35 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rewardService } from '@/services/rewardService';
 import { CreateRewardRequest, UpdateRewardPointsRequest } from '@/types/Reward';
 import { toast } from 'sonner';
+import { teamService } from '@/services/teamService';
+import authService from '@/services/authService';
 
 export const useRewards = () => {
+  const currentUser = authService.getCurrentUser();
+
   return useQuery({
     queryKey: ['rewards'],
-    queryFn: rewardService.list,
+    queryFn: async () => {
+      // Buscar todos os rewards
+      const rewards = await rewardService.list();
+      
+      // Se não houver usuário logado, retorna todos os rewards
+      if (!currentUser) return rewards;
+
+      // Buscar todas as equipes
+      const teams = await teamService.getAll();
+      
+      // Encontrar a equipe do usuário atual
+      const userTeam = teams.find(team => 
+        team.members.some(member => member.value === currentUser.memberId)
+      );
+
+      // Se não encontrar a equipe do usuário, retorna todos os rewards
+      if (!userTeam) return rewards;
+
+      // Filtrar apenas os rewards criados pelo líder da equipe do usuário
+      return rewards.filter(reward => reward.createdBy === userTeam.leaderId.value);
+    },
   });
 };
 
@@ -76,9 +100,31 @@ export const useUnlockedRewards = (userId: number) => {
 };
 
 export const useAvailableRewards = (points: number) => {
+  const currentUser = authService.getCurrentUser();
+
   return useQuery({
     queryKey: ['availableRewards', points],
-    queryFn: () => rewardService.getAvailableRewards(points),
+    queryFn: async () => {
+      // Buscar todos os rewards disponíveis
+      const rewards = await rewardService.getAvailableRewards(points);
+      
+      // Se não houver usuário logado, retorna todos os rewards
+      if (!currentUser) return rewards;
+
+      // Buscar todas as equipes
+      const teams = await teamService.getAll();
+      
+      // Encontrar a equipe do usuário atual
+      const userTeam = teams.find(team => 
+        team.members.some(member => member.value === currentUser.memberId)
+      );
+
+      // Se não encontrar a equipe do usuário, retorna todos os rewards
+      if (!userTeam) return rewards;
+
+      // Filtrar apenas os rewards criados pelo líder da equipe do usuário
+      return rewards.filter(reward => reward.createdBy === userTeam.leaderId.value);
+    },
     enabled: points >= 0,
   });
 };

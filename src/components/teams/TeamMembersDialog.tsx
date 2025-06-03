@@ -6,8 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Member } from '@/types/Member'; // Corrigindo o import para usar a interface do arquivo de tipos
-import { Card, CardContent } from "@/components/ui/card"; // Import Card components for styling
+import { Member } from '@/types/Member';
+import { Card, CardContent } from "@/components/ui/card";
 import { MoreVertical, MessageSquare } from 'lucide-react';
 import {
   DropdownMenu,
@@ -19,35 +19,36 @@ import { CreateFeedbackDialog } from '@/components/feedback/CreateFeedbackDialog
 import { useFeedback } from '@/hooks/useFeedback';
 import authService from '@/services/authService';
 import { CreateFeedbackRequest } from '@/services/feedbackService';
+import { useQuery } from '@tanstack/react-query';
+import { teamService } from '@/services/teamService';
 
 interface TeamMembersDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  members: Member[];
-  teamId?: number; // Novo parâmetro opcional
+  teamId?: number;
 }
 
 export function TeamMembersDialog({
   open,
   onOpenChange,
-  members,
-  teamId, // Novo parâmetro
+  teamId,
 }: TeamMembersDialogProps) {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const currentUser = authService.getCurrentUser();
 
+  const { data: members = [], isLoading } = useQuery({
+    queryKey: ['teamMembers', teamId],
+    queryFn: () => teamService.getMembersByTeamId(teamId!),
+    enabled: !!teamId,
+  });
+
   const { createFeedback, isCreating } = useFeedback(selectedMember?.memberId || 0);
 
-  // Filtrar membros por teamId se fornecido
-  const filteredMembers = teamId 
-    ? members.filter(member => member.teamId === teamId)
-    : members;
-
-  // Ordenar membros por individualScore (do maior para o menor)
-  const sortedMembers = [...filteredMembers].sort((a, b) => (
-    (b.individualScore || 0) - (a.individualScore || 0)
-  ));
+  // Ordenar membros por individualScore (do maior para o menor) e pegar apenas os 5 primeiros
+  const sortedMembers = [...members]
+    .sort((a, b) => (b.individualScore || 0) - (a.individualScore || 0))
+    .slice(0, 5);
 
   const handleFeedbackClick = (member: Member) => {
     setSelectedMember(member);
@@ -72,7 +73,9 @@ export function TeamMembersDialog({
 
           <div className="flex-1 overflow-y-auto p-1">
             <div className="space-y-3">
-              {sortedMembers.length > 0 ? (
+              {isLoading ? (
+                <p className="text-center text-gray-400">Carregando membros...</p>
+              ) : sortedMembers.length > 0 ? (
                 sortedMembers.map((member) => (
                   <Card key={member.memberId} className="bg-gray-700 p-3 rounded-md">
                     <CardContent className="p-0 flex items-center justify-between">

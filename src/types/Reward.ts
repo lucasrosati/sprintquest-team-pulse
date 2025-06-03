@@ -1,16 +1,19 @@
+export type RewardType = 'DESTAQUE' | 'CUPOM' | 'FOLGA';
 
 export interface Reward {
   id: number;
   description: string;
   requiredPoints: number;
-  type: 'CUPOM' | 'FOLGA' | 'DESTAQUE';
+  type: RewardType;
   createdBy: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateRewardRequest {
   description: string;
   requiredPoints: number;
-  type: 'CUPOM' | 'FOLGA' | 'DESTAQUE';
+  type: RewardType;
   createdBy: number;
 }
 

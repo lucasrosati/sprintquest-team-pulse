@@ -6,7 +6,7 @@ import { CreateTaskDialog } from './CreateTaskDialog';
 import { EditTaskDialog } from './EditTaskDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MoreVertical, Trash2, Edit2 } from 'lucide-react';
+import { Plus, MoreVertical, Trash2, Edit2, PlusCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -160,7 +160,7 @@ export function KanbanBoard({
             <div key={columnId} className="flex flex-col space-y-2">
               <div className="flex items-center justify-between h-8">
                 <h3 className="font-semibold flex-1">{columnNames[columnId as ColumnId]}</h3>
-                {columnId === 'backlog' && (
+                {columnId === 'backlog' && isTeamLeader && (
                   <div className="w-8 flex justify-end">
                     <Button
                       variant="ghost"
@@ -276,18 +276,30 @@ export function KanbanBoard({
                   </div>
                 )}
               </Droppable>
+              {columnId === 'backlog' && isTeamLeader && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-gray-400 hover:text-white hover:bg-gray-700 justify-start rounded-t-none"
+                  onClick={() => handleAddTaskClick(columnId as ColumnId)}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Adicionar Tarefa
+                </Button>
+              )}
             </div>
           ))}
         </div>
       </DragDropContext>
 
-      <CreateTaskDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onSubmit={handleCreateTask}
-        projectMembers={projectMembers}
-        projectId={projectId.toString()}
-      />
+      {isCreateDialogOpen && (
+        <CreateTaskDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          onSubmit={handleCreateTask}
+          projectMembers={projectMembers}
+          projectId={projectId.toString()}
+        />
+      )}
 
       {editingTask && (
         <EditTaskDialog

@@ -1,7 +1,20 @@
 import api from './api';
-import { Reward, CreateRewardRequest, UpdateRewardPointsRequest } from '@/types/Reward';
+import { Reward, CreateRewardRequest, UpdateRewardPointsRequest, RewardType } from '@/types/Reward';
+
+export interface CreateRewardRequest {
+  description: string;
+  requiredPoints: number;
+  type: RewardType;
+  createdBy: number;
+}
 
 export const rewardService = {
+  // GET /api/rewards
+  getAll: async (): Promise<Reward[]> => {
+    const response = await api.get('/api/rewards');
+    return response.data;
+  },
+
   // POST /api/rewards
   create: async (data: CreateRewardRequest): Promise<Reward> => {
     const response = await api.post('/api/rewards', data);

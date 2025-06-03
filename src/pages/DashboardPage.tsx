@@ -2,19 +2,36 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus, Users } from 'lucide-react';
+import { ArrowLeft, Plus, Users, MoreVertical, MessageSquare, Trophy } from 'lucide-react';
 import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
 import { useMembers } from '@/hooks/useMembers';
 import { toast } from 'sonner';
 import { TeamMembersDialog } from '@/components/teams/TeamMembersDialog';
+import { RankingDialog } from '@/components/teams/RankingDialog';
+import { CreateRewardDialog } from '@/components/rewards/CreateRewardDialog';
 import { useQuery } from '@tanstack/react-query';
 import { teamService } from '@/services/teamService';
+import { rewardService } from '@/services/rewardService';
+import { CreateFeedbackDialog } from '@/components/feedback/CreateFeedbackDialog';
+import { useFeedback } from '@/hooks/useFeedback';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Member } from '@/types/Member';
+import { CreateFeedbackRequest } from '@/services/feedbackService';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
+  const [isRankingDialogOpen, setIsRankingDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [isCreateRewardOpen, setIsCreateRewardOpen] = useState(false);
   
   // Get user from localStorage
   const userString = localStorage.getItem('user');
@@ -24,11 +41,19 @@ const DashboardPage = () => {
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   // Usando useMembers sem teamId para o ranking geral
   const { data: allMembers = [], isLoading: allMembersLoading } = useMembers();
-  // Usando useMembers com teamId para os membros da equipe
-  const { data: teamMembers = [], isLoading: teamMembersLoading } = useMembers(user?.teamId);
+  // Usando teamService.getMembersByTeamId para os membros da equipe
+  const { data: teamMembers = [], isLoading: teamMembersLoading } = useQuery({
+    queryKey: ['teamMembers', user?.teamId],
+    queryFn: () => teamService.getMembersByTeamId(user?.teamId!),
+    enabled: !!user?.teamId,
+  });
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
     queryFn: () => teamService.getAll(),
+  });
+  const { data: rewards = [], isLoading: rewardsLoading } = useQuery({
+    queryKey: ['rewards'],
+    queryFn: () => rewardService.getAll(),
   });
 
   const isTeamLeader = useMemo(() => {
@@ -38,6 +63,19 @@ const DashboardPage = () => {
   }, [user, teams]);
 
   const createProjectMutation = useCreateProject();
+
+  const { createFeedback } = useFeedback(selectedMember?.memberId || 0);
+
+  const handleFeedbackClick = (member: Member) => {
+    setSelectedMember(member);
+    setIsFeedbackDialogOpen(true);
+  };
+
+  const handleCreateFeedback = async (data: CreateFeedbackRequest) => {
+    if (selectedMember) {
+      await createFeedback(data);
+    }
+  };
 
   const handleCreateProject = async (projectData: { name: string; type: string; description: string }) => {
     try {
@@ -87,21 +125,13 @@ const DashboardPage = () => {
       <main className="container mx-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Projects Card */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg">
+          <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-center text-xl text-white flex items-center justify-between">
                 <span>Meus Projetos</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setIsCreateProjectOpen(true)}
-                  className="hover:bg-gray-700"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 h-[calc(100%-4rem)] overflow-y-auto pb-5">
               {projectsLoading ? (
                 <p className="text-center text-sm">Carregando projetos...</p>
               ) : projects.length > 0 ? (
@@ -145,12 +175,12 @@ const DashboardPage = () => {
             </CardContent>
           </Card>
           
-          {/* Team Score Card (Adicionado no Dashboard)*/}
+          {/* Team Score Card */}
           <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-center text-xl text-white">Pontuação da Equipe</CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center justify-center h-full pb-20">
+            <CardContent className="flex items-center justify-center h-[calc(100%-4rem)] pb-5">
               <div className="text-center text-white flex flex-col items-center justify-center h-full w-full">
                  {/* Calcular score usando teamMembers do Dashboard*/}
                 {teamMembersLoading ? (
@@ -177,18 +207,44 @@ const DashboardPage = () => {
               ) : teamMembers.length > 0 ? (
                 <div className="space-y-3">
                   {teamMembers
-                    .slice(0, 5)
                     .sort((a, b) => (b.individualScore || 0) - (a.individualScore || 0))
+                    .slice(0, 5)
                     .map((member) => (
                     <div key={member.memberId} className="bg-gray-700 p-3 rounded-md">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{member.name}</h4>
-                          <p className="text-xs text-gray-400">{member.role}</p>
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gray-600 mr-3"></div>
+                          <div>
+                            <h4 className="font-medium">{member.name}</h4>
+                            <p className="text-xs text-gray-400">{member.role}</p>
+                          </div>
                         </div>
-                        <span className="text-sm font-bold text-sprint-primary">
-                          {member.individualScore || 0} pts
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-sprint-primary">
+                            {member.individualScore || 0} pts
+                          </span>
+                          {user && user.memberId !== member.memberId && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 hover:bg-gray-600"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                                <DropdownMenuItem
+                                  className="text-white hover:bg-gray-700 cursor-pointer"
+                                  onClick={() => handleFeedbackClick(member)}
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  Enviar Feedback
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -199,7 +255,7 @@ const DashboardPage = () => {
                         className="text-sm text-gray-400 hover:text-white"
                         onClick={() => setIsMembersDialogOpen(true)}
                       >
-                        +{teamMembers.length - 5} membros adicionais
+                        Ver todos os {teamMembers.length} membros
                       </Button>
                     </div>
                   )}
@@ -223,8 +279,8 @@ const DashboardPage = () => {
               ) : allMembers.length > 0 ? (
                 <div className="space-y-3">
                   {allMembers
-                    .sort((a, b) => (b.individualScore || 0) - (a.individualScore || 0)) // Ordenar por pontuação
-                    .slice(0, 5) // Top 5 para o ranking geral
+                    .sort((a, b) => (b.individualScore || 0) - (a.individualScore || 0))
+                    .slice(0, 5)
                     .map((member, index) => (
                       <div key={member.memberId} className="bg-gray-700 p-3 rounded-md">
                         <div className="flex items-center justify-between">
@@ -239,24 +295,80 @@ const DashboardPage = () => {
                       </div>
                     ))
                   }
-                   {/* Opcional: Adicionar botão para ver ranking completo se houver mais que 5 */}
-                   {allMembers.length > 5 && (
-                     <div className="text-center mt-4">
-                       <Button
-                         variant="link"
-                         className="text-sm text-gray-400 hover:text-white"
-                         onClick={() => setIsMembersDialogOpen(true)} // Reutiliza o dialog de membros para ranking completo
-                       >
-                         Ver ranking completo
-                       </Button>
-                     </div>
-                   )}
+                  {allMembers.length > 5 && (
+                    <div className="text-center mt-4">
+                      <Button
+                        variant="link"
+                        className="text-sm text-gray-400 hover:text-white"
+                        onClick={() => setIsRankingDialogOpen(true)}
+                      >
+                        Ver ranking completo
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-center text-gray-400">Nenhum ranking disponível</p>
               )}
             </CardContent>
           </Card>
+
+          {/* Rewards Card - Apenas para líder da equipe */}
+          {isTeamLeader && (
+            <Card className="bg-gray-800 border-gray-700 shadow-lg">
+              <CardHeader className="border-b border-gray-700">
+                <CardTitle className="text-center text-xl text-white flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Trophy className="h-5 w-5 mr-2" />
+                    Recompensas
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsCreateRewardOpen(true)}
+                    className="hover:bg-gray-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {rewardsLoading ? (
+                  <p className="text-center text-sm">Carregando recompensas...</p>
+                ) : rewards.length > 0 ? (
+                  <div className="space-y-3">
+                    {rewards.map((reward) => (
+                      <div key={reward.id} className="bg-gray-700 p-3 rounded-md">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{reward.description}</h4>
+                            <p className="text-xs text-gray-400">
+                              Tipo: {reward.type === 'DESTAQUE' ? 'Destaque' : 
+                                     reward.type === 'CUPOM' ? 'Cupom' : 'Folga'}
+                            </p>
+                          </div>
+                          <span className="text-sm font-bold text-sprint-primary">
+                            {reward.requiredPoints} pts
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400 mb-4">Nenhuma recompensa disponível</p>
+                    <Button
+                      onClick={() => setIsCreateRewardOpen(true)}
+                      className="bg-sprint-primary hover:bg-sprint-accent"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar primeira recompensa
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 
@@ -271,9 +383,33 @@ const DashboardPage = () => {
       <TeamMembersDialog
         open={isMembersDialogOpen}
         onOpenChange={setIsMembersDialogOpen}
-        members={teamMembers} // Passa teamMembers ou allMembers dependendo de como o dialog será usado para o ranking completo
-        teamId={user?.teamId} // Passa teamId para filtrar se necessário
+        teamId={user?.teamId}
       />
+
+      {/* Ranking Dialog */}
+      <RankingDialog
+        open={isRankingDialogOpen}
+        onOpenChange={setIsRankingDialogOpen}
+      />
+
+      {/* Create Feedback Dialog */}
+      {selectedMember && (
+        <CreateFeedbackDialog
+          open={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
+          onSubmit={handleCreateFeedback}
+          member={selectedMember}
+        />
+      )}
+
+      {/* Create Reward Dialog */}
+      {isTeamLeader && (
+        <CreateRewardDialog
+          open={isCreateRewardOpen}
+          onOpenChange={setIsCreateRewardOpen}
+          createdBy={user?.memberId || 0}
+        />
+      )}
     </div>
   );
 };
