@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,11 +8,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
-import { X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Member } from '@/types/Member';
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -22,10 +20,12 @@ interface CreateTaskDialogProps {
     title: string;
     description: string;
     deadline: string;
-    responsible: string;
+    assignedMemberId?: number;
     criteria: string;
+    points: number;
   }) => void;
   columnId?: string;
+  projectMembers: Member[];
 }
 
 export function CreateTaskDialog({
@@ -33,12 +33,14 @@ export function CreateTaskDialog({
   onOpenChange,
   onCreateTask,
   columnId,
+  projectMembers,
 }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [responsible, setResponsible] = useState("");
+  const [assignedMemberId, setAssignedMemberId] = useState<string>('');
   const [criteria, setCriteria] = useState("");
+  const [points, setPoints] = useState<number>(0);
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,21 +54,31 @@ export function CreateTaskDialog({
       });
       return;
     }
+    
+    if (points <= 0) {
+      toast({
+        title: "Campo obrigatório",
+        description: "A pontuação da tarefa deve ser maior que zero.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     onCreateTask({
       title,
       description,
       deadline,
-      responsible,
-      criteria
+      assignedMemberId: assignedMemberId ? Number(assignedMemberId) : undefined,
+      criteria,
+      points,
     });
 
-    // Reset form
     setTitle("");
     setDescription("");
     setDeadline("");
-    setResponsible("");
+    setAssignedMemberId('');
     setCriteria("");
+    setPoints(0);
   };
 
   return (
@@ -74,10 +86,6 @@ export function CreateTaskDialog({
       <DialogContent className="bg-gray-300 text-gray-800 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-xl">Nova task</DialogTitle>
-          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Fechar</span>
-          </DialogClose>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,6 +100,7 @@ export function CreateTaskDialog({
           
           <div>
             <Input
+              type="date"
               placeholder={`Data limite: ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`}
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
@@ -108,26 +117,36 @@ export function CreateTaskDialog({
             />
           </div>
           
-          <div className="flex items-center justify-between bg-white border border-gray-300 rounded-md px-3 py-2">
-            <span className="text-gray-800">Responsável</span>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-gray-500"
-              onClick={() => {
-                // This would typically open a user selection dialog
-                // For now it just sets a placeholder value
-                setResponsible("Usuário Selecionado");
-                toast({
-                  title: "Seleção de usuário",
-                  description: "Função de seleção de usuário será implementada posteriormente."
-                });
-              }}
+          <div>
+            <label htmlFor="responsible" className="block text-sm font-medium text-gray-800">Responsável</label>
+            <select
+              id="responsible"
+              value={assignedMemberId}
+              onChange={(e) => setAssignedMemberId(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sprint-primary focus:ring focus:ring-sprint-primary focus:ring-opacity-50 bg-white text-gray-800"
             >
-              Selecionar
-            </Button>
+              <option value="">Selecionar Responsável</option>
+              {projectMembers.map(member => (
+                <option key={member.memberId} value={member.memberId}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
           </div>
           
+          <div>
+            <label htmlFor="points" className="block text-sm font-medium text-gray-800">Pontos</label>
+            <Input
+              id="points"
+              type="number"
+              placeholder="Pontos da Tarefa"
+              value={points}
+              onChange={(e) => setPoints(Number(e.target.value))}
+              className="mt-1 bg-white border-gray-300 text-gray-800"
+              min="0"
+            />
+          </div>
+
           <div>
             <Input
               placeholder="Critérios específicos"

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import authService, { RegisterData } from '@/services/authService';
+import authService, { RegisterData, Member } from '@/services/authService';
+import { teamService } from '@/services/teamService';
+import { Team } from '@/types/Team';
 
 const RegisterForm: React.FC = () => {
   const [name, setName] = useState('');
@@ -11,8 +13,37 @@ const RegisterForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const teamList = await teamService.getAll();
+        console.log('Fetched teams:', teamList);
+        setTeams(teamList);
+        if (teamList.length > 0) {
+          setSelectedTeamId(String(teamList[0].id.value));
+        }
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível carregar os times.",
+        });
+      }
+    };
+
+    fetchTeams();
+  }, []);
+
+  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Selected team ID:', e.target.value);
+    setSelectedTeamId(e.target.value);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,35 +66,52 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    if (!selectedTeamId) {
+       toast({
+        variant: "destructive",
+        title: "Campo obrigatório",
+        description: "Selecione um time.",
+      });
+      return;
+    }
+
+    console.log('Submitting with team ID:', selectedTeamId);
+
     setIsLoading(true);
 
     try {
       const userData: RegisterData = {
         name,
         email,
-        password
+        password,
+        teamId: Number(selectedTeamId),
+        role: 'DEV',
       };
 
       const response = await authService.register(userData);
       
-      // Store auth data
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('user', JSON.stringify({...response.user, teamId: Number(selectedTeamId)}));
       
       toast({
         title: "Cadastro realizado com sucesso",
         description: "Você está sendo redirecionado para a página inicial.",
       });
       
-      // Redirecionar para a página inicial
       navigate('/');
       
-    } catch (error: any) { // Mantido 'any' para simplificar a demonstração, idealmente seria 'unknown' com tratamento mais robusto
+    } catch (error: unknown) {
       console.error('Registration error:', error);
+      let errorMessage = "Não foi possível completar seu cadastro. Tente novamente.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+         errorMessage = String(error.message);
+      }
       toast({
         variant: "destructive",
         title: "Erro no cadastro",
-        description: error instanceof Error ? error.message : "Não foi possível completar seu cadastro. Tente novamente.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -115,6 +163,22 @@ const RegisterForm: React.FC = () => {
             minLength={6}
             className="h-12 bg-background border-input text-foreground placeholder:text-muted-foreground"
           />
+
+          <div>
+            <select
+              value={selectedTeamId}
+              onChange={handleTeamChange}
+              className="h-12 w-full bg-background border border-input text-foreground rounded-md px-3"
+              required
+            >
+              <option value="" disabled>Selecione um time</option>
+              {teams.map(team => (
+                <option key={team.id.value} value={String(team.id.value)}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
           
           <Button 
             type="submit" 

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, X, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   ResizablePanelGroup,
@@ -16,328 +16,316 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { CreateTaskDialog } from './projects/CreateTaskDialog';
+import { useTasks } from '@/hooks/useTasks';
+import { Task } from '@/services/taskService';
+import { Member } from '@/services/memberService';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { PlusCircle, Edit } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DialogClose } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { columnNames } from '@/types/Task';
+import { toast } from 'sonner';
+import { mutate } from 'react-query';
 
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  deadline?: string;
-  responsible?: string;
-  criteria?: string;
-};
+type ColumnId = 'backlog' | 'ready' | 'in-progress' | 'review' | 'done';
 
 type Column = {
-  id: string;
+  id: ColumnId;
   title: string;
-  tasks: Task[];
 };
 
-const initialColumns: Column[] = [
-  {
-    id: 'todo',
-    title: 'A fazer',
-    tasks: [
-      { id: 'task-1', title: 'Definir escopo', description: 'Definir o escopo do projeto' },
-      { id: 'task-2', title: 'Criar wireframes', description: 'Criar wireframes das principais telas' },
-    ],
-  },
-  {
-    id: 'in-progress',
-    title: 'Em progresso',
-    tasks: [
-      { id: 'task-3', title: 'Implementar login', description: 'Implementar tela de login' },
-    ],
-  },
-  {
-    id: 'done',
-    title: 'Concluído',
-    tasks: [
-      { id: 'task-4', title: 'Setup do projeto', description: 'Configurar o ambiente inicial' },
-    ],
-  },
+const columns: Column[] = [
+  { id: 'backlog', title: 'Backlog' },
+  { id: 'ready', title: 'Pronto' },
+  { id: 'in-progress', title: 'Em Progresso' },
+  { id: 'review', title: 'Revisão' },
+  { id: 'done', title: 'Concluído' },
 ];
 
 interface KanbanBoardProps {
   projectId: number;
+  projectMembers: Member[];
+  tasks: Task[];
+  createTask: (taskData: Omit<Task, 'id' | 'projectId'>) => Promise<any>;
+  updateTask: (taskData: Task) => Promise<any>;
+  moveTask: (taskId: number, newColumn: ColumnId) => Promise<any>;
+  deleteTask: (taskId: number) => Promise<any>;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId }) => {
-  const [columns, setColumns] = useState<Column[]>(initialColumns);
-  const [editingTask, setEditingTask] = useState<{columnId: string, taskId: string} | null>(null);
-  const [editedTitle, setEditedTitle] = useState<string>('');
-  const [editedDescription, setEditedDescription] = useState<string>('');
-  const { toast } = useToast();
-  
-  // State for the create task dialog
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, projectMembers, tasks, createTask, updateTask, moveTask, deleteTask }) => {
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [activeColumnId, setActiveColumnId] = useState<string | undefined>(undefined);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState<
+    number | undefined
+  >(undefined);
+  const [newTaskPoints, setNewTaskPoints] = useState<number | undefined>(
+    undefined
+  );
+  const [activeColumnId, setActiveColumnId] = useState<ColumnId | null>(null);
 
-  console.log('KanbanBoard projectId:', projectId); // For debugging
+  const tasksByColumn = useMemo(() => {
+    console.log('KanbanBoard - Grouping tasks by column. Total tasks received:', tasks.length);
+    const columns: Record<ColumnId, Task[]> = {
+      backlog: [],
+      pronto: [],
+      'em progresso': [],
+      revisao: [],
+      concluido: [],
+    };
 
-  const handleAddTask = (columnId: string) => {
+    tasks.forEach((task) => {
+      const columnKey = task.kanbanColumn.toLowerCase() as ColumnId;
+      if (columns[columnKey]) {
+        columns[columnKey].push(task);
+      } else {
+        console.warn('KanbanBoard - Task with unknown column:', task.kanbanColumn, task);
+      }
+    });
+    console.log('KanbanBoard - Tasks grouped by column:', columns);
+    return columns;
+  }, [tasks]);
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const sourceColumnId = result.source.droppableId as ColumnId;
+    const destinationColumnId = result.destination.droppableId as ColumnId;
+    const movedTask = tasksByColumn[sourceColumnId].find(
+      (task) => task.id.toString() === result.draggableId
+    );
+
+    if (movedTask && sourceColumnId !== destinationColumnId) {
+      console.log(
+        `Moving task ${movedTask.id} from ${sourceColumnId} to ${destinationColumnId}`
+      );
+      try {
+        await moveTask(movedTask.id, destinationColumnId);
+        toast.success('Tarefa movida com sucesso!');
+      } catch (error) {
+        console.error('Erro ao mover a tarefa:', error);
+        toast.error('Erro ao mover a tarefa.');
+      }
+    }
+  };
+
+  const handleAddTaskClick = (columnId: ColumnId) => {
     setActiveColumnId(columnId);
     setIsCreateTaskOpen(true);
   };
 
-  const handleCreateTask = (taskData: {
+  const handleCreateTask = async (taskData: {
     title: string;
     description: string;
-    deadline: string;
-    responsible: string;
-    criteria: string;
+    assignedMemberId: number | undefined;
+    points: number | undefined;
   }) => {
-    if (!activeColumnId) return;
-    
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      ...taskData
-    };
-
-    const updatedColumns = columns.map(column => {
-      if (column.id === activeColumnId) {
-        return {
-          ...column,
-          tasks: [...column.tasks, newTask]
-        };
-      }
-      return column;
-    });
-
-    setColumns(updatedColumns);
-    setIsCreateTaskOpen(false);
-    
-    toast({
-      title: "Tarefa adicionada",
-      description: "Nova tarefa adicionada ao quadro.",
-    });
-  };
-
-  const handleDeleteTask = (columnId: string, taskId: string) => {
-    const updatedColumns = columns.map(column => {
-      if (column.id === columnId) {
-        return {
-          ...column,
-          tasks: column.tasks.filter(task => task.id !== taskId)
-        };
-      }
-      return column;
-    });
-
-    setColumns(updatedColumns);
-    if (editingTask?.taskId === taskId) {
-      setEditingTask(null);
+    if (!activeColumnId) {
+      toast.error('Coluna ativa não definida.');
+      return;
     }
-    
-    toast({
-      title: "Tarefa removida",
-      description: "A tarefa foi removida do quadro.",
-    });
+    console.log('KanbanBoard - handleCreateTask - taskData:', taskData);
+    try {
+      await createTask({
+        projectId: projectId,
+        kanbanColumn: activeColumnId,
+        title: taskData.title,
+        description: taskData.description,
+        assignedMemberId: taskData.assignedMemberId,
+        points: taskData.points,
+      });
+      toast.success('Tarefa criada com sucesso!');
+      setIsCreateTaskOpen(false);
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+      setNewTaskAssignee(undefined);
+      setNewTaskPoints(undefined);
+    } catch (error) {
+      console.error('Erro ao criar tarefa:', error);
+      toast.error('Erro ao criar tarefa.');
+    }
   };
 
-  const handleEditTask = (columnId: string, task: Task) => {
-    setEditingTask({ columnId, taskId: task.id });
-    setEditedTitle(task.title);
-    setEditedDescription(task.description);
+  const handleEditTaskClick = (task: Task) => {
+    setEditingTask(task);
+    setNewTaskTitle(task.title);
+    setNewTaskDescription(task.description);
+    setNewTaskAssignee(task.assignees ? task.assignees[0]?.memberId : undefined);
+    setNewTaskPoints(task.points);
   };
 
-  const handleSaveTask = () => {
+  const handleSaveTask = async () => {
     if (!editingTask) return;
 
-    const updatedColumns = columns.map(column => {
-      if (column.id === editingTask.columnId) {
-        return {
-          ...column,
-          tasks: column.tasks.map(task => {
-            if (task.id === editingTask.taskId) {
-              return {
-                ...task,
-                title: editedTitle,
-                description: editedDescription
-              };
-            }
-            return task;
-          })
-        };
-      }
-      return column;
-    });
+    const updatedTaskData: Task = {
+      ...editingTask,
+      title: newTaskTitle,
+      description: newTaskDescription,
+      assignees: newTaskAssignee !== undefined ? [{ memberId: newTaskAssignee }] : [],
+      points: newTaskPoints,
+    };
+    console.log('KanbanBoard - handleSaveTask - updatedTaskData:', updatedTaskData);
 
-    setColumns(updatedColumns);
-    setEditingTask(null);
-    
-    toast({
-      title: "Tarefa atualizada",
-      description: "As alterações na tarefa foram salvas.",
-    });
-  };
-
-  const handleMoveTask = (fromColId: string, toColId: string, taskId: string) => {
-    // Find the task in the source column
-    const sourceColumn = columns.find(col => col.id === fromColId);
-    if (!sourceColumn) return;
-    
-    const taskToMove = sourceColumn.tasks.find(task => task.id === taskId);
-    if (!taskToMove) return;
-    
-    // Remove from source and add to target column
-    const updatedColumns = columns.map(column => {
-      if (column.id === fromColId) {
-        return {
-          ...column,
-          tasks: column.tasks.filter(task => task.id !== taskId)
-        };
-      }
-      if (column.id === toColId) {
-        return {
-          ...column,
-          tasks: [...column.tasks, taskToMove]
-        };
-      }
-      return column;
-    });
-    
-    setColumns(updatedColumns);
-    
-    toast({
-      title: "Tarefa movida",
-      description: `A tarefa foi movida para ${columns.find(col => col.id === toColId)?.title}.`,
-    });
-  };
-
-  const handleDragStart = (e: React.DragEvent, columnId: string, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-    e.dataTransfer.setData('fromColumnId', columnId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, columnId: string) => {
-    const taskId = e.dataTransfer.getData('taskId');
-    const fromColumnId = e.dataTransfer.getData('fromColumnId');
-    
-    if (fromColumnId !== columnId) {
-      handleMoveTask(fromColumnId, columnId, taskId);
+    try {
+      await updateTask(updatedTaskData);
+      toast.success('Tarefa atualizada com sucesso!');
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Erro ao atualizar a tarefa:', error);
+      toast.error('Erro ao atualizar a tarefa.');
     }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    console.log('KanbanBoard - handleDeleteTask - taskId:', taskId);
+    try {
+      await deleteTask(taskId);
+      toast.success('Tarefa excluída com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir a tarefa:', error);
+      toast.error('Erro ao excluir a tarefa.');
+    }
+  };
+
+  const getAssigneeName = (assigneeId: number) => {
+    const member = projectMembers.find((m) => m.memberId === assigneeId);
+    return member ? member.name : 'Não atribuído';
   };
 
   return (
-    <>
-      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
-        {columns.map((column, index) => (
-          <React.Fragment key={column.id}>
-            {index > 0 && <ResizableHandle withHandle />}
-            <ResizablePanel defaultSize={33} minSize={20} className="p-1">
-              <div 
-                className="bg-gray-800 h-full rounded-md overflow-hidden flex flex-col" 
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, column.id)}
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="flex space-x-4 overflow-x-auto h-full pb-4">
+        {Object.entries(tasksByColumn).map(([columnId, tasks]) => (
+          <Droppable key={columnId} droppableId={columnId}>
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="w-64 flex-shrink-0 bg-gray-800 rounded-lg shadow-md flex flex-col overflow-hidden"
               >
-                <div className="bg-gray-750 p-2 border-b border-gray-700">
-                  <h3 className="font-medium text-center text-white">
-                    {column.title} ({column.tasks.length})
-                  </h3>
-                </div>
-                <div className="p-2 flex-1 overflow-y-auto">
-                  {column.tasks.map(task => (
-                    <div 
+                <CardHeader className="bg-gray-700 text-white py-3 px-4 border-b border-gray-600">
+                  <CardTitle className="text-sm font-semibold uppercase">
+                    {columnNames[columnId as ColumnId]}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {tasks.map((task, index) => (
+                    <Draggable
                       key={task.id}
-                      className={`mb-2 rounded-md ${
-                        editingTask?.taskId === task.id 
-                          ? 'bg-gray-700 p-3' 
-                          : 'bg-gray-700 p-3 cursor-move hover:bg-gray-650'
-                      }`}
-                      draggable={editingTask?.taskId !== task.id}
-                      onDragStart={(e) => handleDragStart(e, column.id, task.id)}
+                      draggableId={task.id.toString()}
+                      index={index}
                     >
-                      {editingTask?.taskId === task.id ? (
-                        <div className="space-y-2">
-                          <Input 
-                            value={editedTitle}
-                            onChange={(e) => setEditedTitle(e.target.value)}
-                            placeholder="Título da tarefa"
-                            className="bg-gray-800 border-gray-600"
-                          />
-                          <Textarea 
-                            value={editedDescription}
-                            onChange={(e) => setEditedDescription(e.target.value)}
-                            placeholder="Descrição da tarefa"
-                            className="bg-gray-800 border-gray-600 min-h-20"
-                          />
-                          <div className="flex justify-end gap-2 pt-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setEditingTask(null)}
-                            >
-                              Cancelar
-                            </Button>
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              onClick={handleSaveTask}
-                            >
-                              Salvar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <h4 className="font-medium mb-1">{task.title}</h4>
-                          <p className="text-sm text-gray-400 mb-2">{task.description}</p>
-                          {task.deadline && (
-                            <p className="text-xs text-gray-500 mb-1">Data limite: {task.deadline}</p>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="bg-gray-700 text-white p-3 rounded-md shadow-sm cursor-pointer hover:bg-gray-600 transition-colors"
+                          onClick={() => handleEditTaskClick(task)}
+                        >
+                          <h4 className="text-sm font-medium mb-1">{task.title}</h4>
+                          <p className="text-xs text-gray-400 mb-2 overflow-hidden text-ellipsis line-clamp-2">{task.description}</p>
+                          {task.assignees && task.assignees.length > 0 && (
+                            <p className="text-xs text-gray-300">Responsável: {getAssigneeName(task.assignees[0].memberId)}</p>
                           )}
-                          {task.responsible && (
-                            <p className="text-xs text-gray-500 mb-1">Responsável: {task.responsible}</p>
+                          {task.points !== undefined && (
+                             <p className="text-xs text-gray-300">Pontos: {task.points}</p>
                           )}
-                          {task.criteria && (
-                            <p className="text-xs text-gray-500 mb-1">Critérios: {task.criteria}</p>
-                          )}
-                          <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleEditTask(column.id, task)}
-                            >
-                              Editar
-                            </Button>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => handleDeleteTask(column.id, task.id)}
-                            >
-                              Remover
-                            </Button>
-                          </div>
                         </div>
                       )}
-                    </div>
+                    </Draggable>
                   ))}
-                </div>
-                <div className="p-2 border-t border-gray-700">
-                  <Button 
-                    className="w-full bg-gray-700 hover:bg-gray-650" 
-                    variant="outline"
-                    onClick={() => handleAddTask(column.id)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Adicionar tarefa
-                  </Button>
-                </div>
+                  {provided.placeholder}
+                </CardContent>
+                <Button
+                  variant="ghost"
+                  className="w-full text-gray-400 hover:text-white hover:bg-gray-700 justify-start rounded-t-none"
+                  onClick={() => handleAddTaskClick(columnId as ColumnId)}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Adicionar Tarefa
+                </Button>
               </div>
-            </ResizablePanel>
-          </React.Fragment>
+            )}
+          </Droppable>
         ))}
-      </ResizablePanelGroup>
-      
-      <CreateTaskDialog 
-        open={isCreateTaskOpen}
-        onOpenChange={setIsCreateTaskOpen}
-        onCreateTask={handleCreateTask}
-        columnId={activeColumnId}
-      />
-    </>
+      </div>
+
+      {isCreateTaskOpen && (
+        <CreateTaskDialog
+          open={isCreateTaskOpen}
+          onOpenChange={setIsCreateTaskOpen}
+          onCreateTask={handleCreateTask}
+          projectMembers={projectMembers}
+        />
+      )}
+
+      {editingTask && (
+        <Dialog open={!!editingTask} onOpenChange={setEditingTask}>
+          <DialogContent className="bg-gray-850 text-white border-gray-700">
+            <DialogHeader>
+              <DialogTitle>Editar Tarefa</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Input
+                label="Título"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="col-span-4 bg-gray-700 text-white border-gray-600"
+              />
+              <Textarea
+                label="Descrição"
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+                className="col-span-4 bg-gray-700 text-white border-gray-600"
+              />
+              <Select
+                value={newTaskAssignee?.toString() || ''}
+                onValueChange={(value) => setNewTaskAssignee(Number(value))}
+              >
+                <SelectTrigger className="col-span-4 bg-gray-700 text-white border-gray-600">
+                  <SelectValue placeholder="Atribuir a..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectMembers.map((member) => (
+                    <SelectItem key={member.memberId} value={member.memberId.toString()}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+               <Input
+                label="Pontos"
+                type="number"
+                value={newTaskPoints !== undefined ? newTaskPoints : ''}
+                onChange={(e) => setNewTaskPoints(e.target.value === '' ? undefined : Number(e.target.value))}
+                className="col-span-4 bg-gray-700 text-white border-gray-600"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="destructive" onClick={() => handleDeleteTask(editingTask.id)}>
+                 <Trash2 className="h-4 w-4 mr-2" /> Excluir
+              </Button>
+              <Button onClick={handleSaveTask} className="bg-sprint-primary hover:bg-sprint-accent">
+                <Edit className="h-4 w-4 mr-2" /> Salvar Alterações
+              </Button>
+            </div>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus-ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Fechar</span>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
+      )}
+    </DragDropContext>
   );
 };
 

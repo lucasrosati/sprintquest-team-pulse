@@ -1,190 +1,243 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, X } from 'lucide-react';
-import KanbanBoard from '@/components/KanbanBoard';
-import { useProject } from '@/hooks/useProjects';
+import { ArrowLeft, Trophy } from 'lucide-react';
+import { useProjects } from '@/hooks/useProjects';
 import { useMembers } from '@/hooks/useMembers';
+import { useUserTasks } from '@/hooks/useUserTasks';
+import { useTasks } from '@/hooks/useTasks';
+import authService from '@/services/authService';
+import { taskService } from '@/services/taskService';
+import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+import { ChallengeList } from '@/components/challenges/ChallengeList';
+import { CreateChallengeDialog } from '@/components/challenges/CreateChallengeDialog';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { ColumnId, CreateTaskRequest, UpdateTaskRequest } from '@/types/Task';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const ProjectDetailsPage = () => {
+export function ProjectDetailsPage() {
   const navigate = useNavigate();
-  const { projectId } = useParams();
-  const [isKanbanOpen, setIsKanbanOpen] = useState(false);
-  
-  // Use real data from backend
-  const { data: project, isLoading: projectLoading } = useProject(Number(projectId));
-  const { data: members = [], isLoading: membersLoading } = useMembers();
-  
-  // Calculate rankings from real member data
-  const rankings = members
-    .map((member, index) => ({
-      position: index + 1,
-      name: member.name,
-      points: member.individualScore || 0,
-    }))
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 3); // Top 3 for this view
+  const { projectId } = useParams<{ projectId: string }>();
+  const projectIdNumber = projectId ? parseInt(projectId) : 0;
+  const user = authService.getCurrentUser();
+  const [isCreateChallengeOpen, setIsCreateChallengeOpen] = useState(false);
 
-  // Calculate team score from members
-  const teamScore = members.reduce((total, member) => total + (member.individualScore || 0), 0);
+  console.log('ProjectDetailsPage - User:', user);
+  console.log('ProjectDetailsPage - Project ID:', projectIdNumber);
 
-  if (projectLoading) {
+  const { data: projects, isLoading: isLoadingProject, error: errorProjects } = useProjects(projectIdNumber);
+  const { data: members, isLoading: isLoadingMembers, error: errorMembers } = useMembers();
+  const { data: userTasks, isLoading: isLoadingUserTasks, error: errorUserTasks } = useUserTasks(user?.memberId || 0);
+  const { tasks: projectTasks, isLoading: isLoadingProjectTasks, error: errorProjectTasks, createTask, updateTask, moveTask, deleteTask } = useTasks(projectIdNumber);
+
+  console.log('ProjectDetailsPage - projectTasks (raw data):', projectTasks);
+  console.log('ProjectDetailsPage - userTasks (raw data):', userTasks);
+  console.log('ProjectDetailsPage - isLoadingProjectTasks:', isLoadingProjectTasks);
+  console.log('ProjectDetailsPage - isLoadingUserTasks:', isLoadingUserTasks);
+
+  const project = projects?.[0];
+  const projectMembers = useMemo(() => {
+    return members?.filter(
+      (member) => member.teamId === project?.teamId
+    ) || [];
+  }, [members, project]);
+
+  const tasksToDisplay = useMemo(() => {
+    console.log('ProjectDetailsPage - Using all project tasks');
+    if (!projectTasks) {
+      console.log('Project tasks not loaded yet.');
+      return [];
+    }
+    return projectTasks;
+  }, [projectTasks]);
+
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <p>Carregando projeto...</p>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Erro de Autenticação</AlertTitle>
+        <AlertDescription>Você precisa estar logado para ver os detalhes do projeto.</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (isLoadingProject || isLoadingMembers || isLoadingProjectTasks || isLoadingUserTasks) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-96 w-full" />
+        <p>Carregando detalhes do projeto...</p>
       </div>
+    );
+  }
+
+  if (errorProjects || errorMembers || errorProjectTasks || errorUserTasks) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Erro ao Carregar Dados</AlertTitle>
+        <AlertDescription>
+          Ocorreu um erro ao carregar os dados.
+          Detalhes: {errorProjects?.message || errorMembers?.message || errorProjectTasks?.message || errorUserTasks?.message}
+        </AlertDescription>
+      </Alert>
     );
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="mb-4">Projeto não encontrado</p>
-          <Button onClick={() => navigate('/dashboard')}>
-            Voltar ao Dashboard
-          </Button>
-        </div>
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Projeto não encontrado</AlertTitle>
+        <AlertDescription>O projeto com o ID {projectId} não foi encontrado.</AlertDescription>
+      </Alert>
     );
   }
-  
-  return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800">
-        <div className="container mx-auto p-4 flex items-center">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/dashboard')}
-            className="mr-4 hover:bg-gray-800"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold text-center flex-1">{project.name}</h1>
-        </div>
-      </header>
-      
-      {/* Main content */}
-      <main className="container mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          {/* Team Score Card */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
-            <CardHeader className="border-b border-gray-700">
-              <CardTitle className="text-center text-xl text-white">Pontuação da Equipe</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-full">
-              <div className="text-center text-white">
-                <p className="text-5xl font-bold text-sprint-primary">{teamScore}</p>
-                <p className="mt-2 text-gray-400">pontos totais</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Project Progress Card */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
-            <CardHeader className="border-b border-gray-700">
-              <CardTitle className="text-center text-xl text-white">Progresso do Projeto</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-full">
-              <div className="text-center text-white w-full">
-                {/* Mock progress - you can enhance this with real task completion data */}
-                <div className="h-8 bg-gray-700 rounded-full overflow-hidden w-full">
-                  <div 
-                    className="h-full bg-sprint-primary" 
-                    style={{ width: '75%' }}
-                  ></div>
-                </div>
-                <p className="mt-4 text-2xl font-bold">75%</p>
-                <p className="mt-2 text-gray-400">completado</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Weekly Ranking */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg">
-            <CardHeader className="border-b border-gray-700">
-              <CardTitle className="text-center text-xl text-white">Ranking da Equipe</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {membersLoading ? (
-                  <p className="text-center text-sm">Carregando...</p>
-                ) : rankings.length > 0 ? (
-                  rankings.map((rank) => (
-                    <div key={rank.position} className="bg-gray-700 p-4 rounded-md">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <span className="text-xl font-bold mr-4 text-sprint-primary">
-                            {rank.position}.
-                          </span>
-                          <div className="h-8 w-8 rounded-full bg-gray-600 mr-3"></div>
-                          <span>{rank.name}</span>
-                        </div>
-                        <span className="font-bold text-sprint-accent">
-                          {rank.points.toLocaleString()} pts
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-sm">Nenhum ranking disponível</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Kanban Board */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg">
-            <CardHeader className="border-b border-gray-700">
-              <CardTitle className="text-center text-xl text-white">Quadro Kanban</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div 
-                className="flex justify-center items-center h-72 text-gray-500 cursor-pointer hover:bg-gray-750 transition-colors rounded-md"
-                onClick={() => setIsKanbanOpen(true)}
-              >
-                <div className="text-center">
-                  <div className="w-32 h-32 mx-auto border-2 border-gray-700 rounded-lg flex items-center justify-center">
-                    <div className="transform rotate-45 w-24 h-24 border-gray-700 border-2"></div>
-                  </div>
-                  <p className="mt-4">Clique para abrir o quadro Kanban</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
 
-      {/* Kanban Dialog */}
-      <Dialog open={isKanbanOpen} onOpenChange={setIsKanbanOpen}>
-        <DialogContent className="bg-gray-850 text-white border-gray-700 max-w-6xl h-[80vh] flex flex-col">
-          <DialogHeader className="border-b border-gray-700 pb-4">
-            <DialogTitle className="text-xl text-white flex justify-between items-center">
-              <span>Quadro Kanban - {project.name}</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setIsKanbanOpen(false)} 
-                className="hover:bg-gray-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto p-1">
-            <KanbanBoard projectId={Number(projectId)} />
+  const completedTasksCount = tasksToDisplay.filter((task) => task.kanbanColumn.toLowerCase() === 'done').length;
+  const totalTasksCount = tasksToDisplay.length;
+  const progressPercentage = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0;
+
+  const handleCreateTask = async (data: CreateTaskRequest) => {
+    try {
+      await createTask.mutateAsync({
+        ...data,
+        projectId: projectIdNumber,
+      });
+    } catch (error) {
+      console.error('Erro ao criar tarefa na página:', error);
+    }
+  };
+
+  const handleUpdateTask = async ({ taskId, data }: { taskId: number; data: UpdateTaskRequest }) => {
+    try {
+      await updateTask.mutateAsync({
+        taskId,
+        data,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar tarefa na página:', error);
+    }
+  };
+
+  const handleMoveTask = async ({ taskId, newColumn }: { taskId: number; newColumn: ColumnId }) => {
+    try {
+      await moveTask.mutateAsync({
+        taskId,
+        newColumn,
+      });
+    } catch (error) {
+      console.error('Erro ao mover tarefa na página:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      await deleteTask.mutateAsync(taskId);
+    } catch (error) {
+      console.error('Erro ao excluir tarefa na página:', error);
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate('/dashboard')}
+        className="mb-4"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar para o Dashboard
+      </Button>
+
+      <div className="px-2">
+        <h1 className="text-3xl font-bold">{project.name}</h1>
+        <p className="text-muted-foreground">{project.description}</p>
+      </div>
+
+      <Card className="mx-2">
+        <CardHeader>
+          <CardTitle>Progresso do Projeto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span>
+                {completedTasksCount} de {totalTasksCount} tarefas concluídas
+              </span>
+              <span>{Math.round(progressPercentage)}%</span>
+            </div>
+            <Progress value={progressPercentage} />
           </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="kanban" className="w-full px-2">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="kanban">Quadro Kanban</TabsTrigger>
+          <TabsTrigger value="challenges" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Desafios
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kanban">
+          <Card className="bg-transparent border-none shadow-none">
+            <CardHeader className="px-0">
+              <CardTitle>Quadro Kanban</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <KanbanBoard
+                projectId={projectIdNumber}
+                tasks={tasksToDisplay}
+                projectMembers={projectMembers}
+                createTask={handleCreateTask}
+                updateTask={handleUpdateTask}
+                moveTask={handleMoveTask}
+                deleteTask={handleDeleteTask}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="challenges">
+          <Card className="bg-transparent border-none shadow-none">
+            <CardHeader className="flex flex-row items-center justify-between px-0">
+              <CardTitle>Desafios do Projeto</CardTitle>
+              <Button
+                onClick={() => setIsCreateChallengeOpen(true)}
+                className="bg-sprint-primary hover:bg-sprint-accent"
+              >
+                <Trophy className="h-4 w-4 mr-2" />
+                Novo Desafio
+              </Button>
+            </CardHeader>
+            <CardContent className="px-0">
+              <ChallengeList
+                projectId={projectIdNumber}
+                onOpenCreateDialog={() => setIsCreateChallengeOpen(true)}
+                openCreateDialog={isCreateChallengeOpen}
+                onOpenCreateDialogChange={setIsCreateChallengeOpen}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <CreateChallengeDialog
+        open={isCreateChallengeOpen}
+        onOpenChange={setIsCreateChallengeOpen}
+        projectId={projectIdNumber}
+        createdBy={user?.memberId || 0}
+      />
     </div>
   );
-};
+}
 
 export default ProjectDetailsPage;

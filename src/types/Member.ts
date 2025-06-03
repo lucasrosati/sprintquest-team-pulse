@@ -1,12 +1,24 @@
+import { Reward } from './Reward';
 
 export interface Member {
-  id: number;
+  memberId: number;
   name: string;
   email: string;
   role: 'DEV' | 'QA' | 'PO';
   individualScore: number;
   points?: number;
   rewards?: Reward[];
+  teamId?: number;
+  password?: string;
+  is_admin?: boolean;
+  unlockedRewardIds?: number[];
+  receivedFeedbacks?: {
+    id: number;
+    message: string;
+    date: string;
+    givenBy: number;
+    relatedTaskId: number;
+  }[];
 }
 
 export interface Reward {
@@ -30,4 +42,8 @@ export interface UpdatePointsRequest {
 
 export interface UnlockRewardRequest {
   rewardId: number;
+}
+
+export interface TeamMemberReference {
+  value: number;
 }

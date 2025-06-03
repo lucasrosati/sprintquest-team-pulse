@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,14 +7,23 @@ import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
 import { useMembers } from '@/hooks/useMembers';
 import { toast } from 'sonner';
+import { TeamMembersDialog } from '@/components/teams/TeamMembersDialog';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
+  
+  // Get user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
   
   // Use real data from backend
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
-  const { data: members = [], isLoading: membersLoading } = useMembers();
+  // Usando useMembers sem teamId para o ranking geral
+  const { data: allMembers = [], isLoading: allMembersLoading } = useMembers();
+  // Usando useMembers com teamId para os membros da equipe
+  const { data: teamMembers = [], isLoading: teamMembersLoading } = useMembers(user?.teamId);
   const createProjectMutation = useCreateProject();
 
   const handleCreateProject = async (projectData: { name: string; type: string; description: string }) => {
@@ -33,15 +41,10 @@ const DashboardPage = () => {
     }
   };
 
-  // Calculate rankings from real member data
-  const rankings = members
-    .map((member, index) => ({
-      position: index + 1,
-      name: member.name,
-      points: member.individualScore || 0,
-    }))
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 5); // Top 5
+  // Calcular pontuação da equipe no Dashboard
+  const teamScore = useMemo(() => {
+    return teamMembers.reduce((total, member) => total + (member.individualScore || 0), 0);
+  }, [teamMembers]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -90,7 +93,7 @@ const DashboardPage = () => {
                 <p className="text-center text-sm">Carregando projetos...</p>
               ) : projects.length > 0 ? (
                 <div className="space-y-3">
-                  {projects.slice(0, 3).map((project) => (
+                  {projects.map((project) => (
                     <div 
                       key={project.id} 
                       className="bg-gray-700 p-4 rounded-md cursor-pointer hover:bg-gray-650 transition-colors"
@@ -100,11 +103,6 @@ const DashboardPage = () => {
                       <p className="text-sm text-gray-400 mt-1">{project.description}</p>
                     </div>
                   ))}
-                  {projects.length > 3 && (
-                    <p className="text-sm text-center text-gray-400 mt-4">
-                      +{projects.length - 3} projetos adicionais
-                    </p>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -121,6 +119,24 @@ const DashboardPage = () => {
             </CardContent>
           </Card>
           
+          {/* Team Score Card (Adicionado no Dashboard)*/}
+          <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
+            <CardHeader className="border-b border-gray-700">
+              <CardTitle className="text-center text-xl text-white">Pontuação da Equipe</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center h-full pb-20">
+              <div className="text-center text-white flex flex-col items-center justify-center h-full w-full">
+                 {/* Calcular score usando teamMembers do Dashboard*/}
+                {teamMembersLoading ? (
+                  <p className="text-sm">Carregando pontuação...</p>
+                ) : (
+                  <p className="text-5xl font-bold text-sprint-primary">{teamScore}</p>
+                )}
+                <p className="mt-2 text-gray-400">pontos totais</p>
+              </div>
+            </CardContent>
+          </Card>
+          
           {/* Team Members Card */}
           <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardHeader className="border-b border-gray-700">
@@ -130,12 +146,15 @@ const DashboardPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              {membersLoading ? (
+              {teamMembersLoading ? (
                 <p className="text-center text-sm">Carregando membros...</p>
-              ) : members.length > 0 ? (
+              ) : teamMembers.length > 0 ? (
                 <div className="space-y-3">
-                  {members.slice(0, 5).map((member) => (
-                    <div key={member.id} className="bg-gray-700 p-3 rounded-md">
+                  {teamMembers
+                    .slice(0, 5)
+                    .sort((a, b) => (b.individualScore || 0) - (a.individualScore || 0))
+                    .map((member) => (
+                    <div key={member.memberId} className="bg-gray-700 p-3 rounded-md">
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-medium">{member.name}</h4>
@@ -147,51 +166,72 @@ const DashboardPage = () => {
                       </div>
                     </div>
                   ))}
-                  {members.length > 5 && (
-                    <p className="text-sm text-center text-gray-400 mt-4">
-                      +{members.length - 5} membros adicionais
-                    </p>
+                  {teamMembers.length > 5 && (
+                    <div className="text-center mt-4">
+                      <Button
+                        variant="link"
+                        className="text-sm text-gray-400 hover:text-white"
+                        onClick={() => setIsMembersDialogOpen(true)}
+                      >
+                        +{teamMembers.length - 5} membros adicionais
+                      </Button>
+                    </div>
                   )}
                 </div>
               ) : (
-                <p className="text-center text-gray-400">Nenhum membro encontrado</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-400">Nenhum membro da equipe encontrado</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Overall Ranking Card */}
+          <Card className="bg-gray-800 border-gray-700 shadow-lg">
+            <CardHeader className="border-b border-gray-700">
+              <CardTitle className="text-center text-xl text-white">Ranking Geral</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {allMembersLoading ? (
+                <p className="text-center text-sm">Carregando ranking...</p>
+              ) : allMembers.length > 0 ? (
+                <div className="space-y-3">
+                  {allMembers
+                    .sort((a, b) => (b.individualScore || 0) - (a.individualScore || 0)) // Ordenar por pontuação
+                    .slice(0, 5) // Top 5 para o ranking geral
+                    .map((member, index) => (
+                      <div key={member.memberId} className="bg-gray-700 p-3 rounded-md">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="w-6 text-center mr-2 font-bold text-sprint-accent">{index + 1}.</div>
+                            <h4>{member.name}</h4>
+                          </div>
+                          <span className="text-sm font-bold text-sprint-primary">
+                            {member.individualScore || 0} pts
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  }
+                   {/* Opcional: Adicionar botão para ver ranking completo se houver mais que 5 */}
+                   {allMembers.length > 5 && (
+                     <div className="text-center mt-4">
+                       <Button
+                         variant="link"
+                         className="text-sm text-gray-400 hover:text-white"
+                         onClick={() => setIsMembersDialogOpen(true)} // Reutiliza o dialog de membros para ranking completo
+                       >
+                         Ver ranking completo
+                       </Button>
+                     </div>
+                   )}
+                </div>
+              ) : (
+                <p className="text-center text-gray-400">Nenhum ranking disponível</p>
               )}
             </CardContent>
           </Card>
         </div>
-        
-        {/* Rankings Section */}
-        <Card className="bg-gray-800 border-gray-700 shadow-lg">
-          <CardHeader className="border-b border-gray-700">
-            <CardTitle className="text-center text-xl text-white">Ranking Individual</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {membersLoading ? (
-              <p className="text-center text-sm">Carregando rankings...</p>
-            ) : rankings.length > 0 ? (
-              <div className="space-y-4">
-                {rankings.map((rank) => (
-                  <div key={rank.position} className="bg-gray-700 p-4 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-xl font-bold mr-4 text-sprint-primary">
-                          {rank.position}.
-                        </span>
-                        <div className="h-8 w-8 rounded-full bg-gray-600 mr-3"></div>
-                        <span className="font-medium">{rank.name}</span>
-                      </div>
-                      <span className="font-bold text-sprint-accent">
-                        {rank.points.toLocaleString()} pts
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-gray-400">Nenhum ranking disponível</p>
-            )}
-          </CardContent>
-        </Card>
       </main>
 
       {/* Create Project Dialog */}
@@ -199,6 +239,14 @@ const DashboardPage = () => {
         open={isCreateProjectOpen}
         onOpenChange={setIsCreateProjectOpen}
         onCreateProject={handleCreateProject}
+      />
+
+      {/* Team Members Dialog */}
+      <TeamMembersDialog
+        open={isMembersDialogOpen}
+        onOpenChange={setIsMembersDialogOpen}
+        members={teamMembers} // Passa teamMembers ou allMembers dependendo de como o dialog será usado para o ranking completo
+        teamId={user?.teamId} // Passa teamId para filtrar se necessário
       />
     </div>
   );

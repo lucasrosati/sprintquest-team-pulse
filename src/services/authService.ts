@@ -1,4 +1,6 @@
 import api from './api';
+import { teamService } from './teamService'; // Import teamService
+import { Member } from '@/types/Member'; // Importando Member do arquivo de tipos
 
 export interface LoginCredentials {
   email: string;
@@ -9,24 +11,9 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
-  // Role, isAdmin e TeamId não são mais fornecidos pelo usuário no frontend
-}
-
-export interface Member {
-  memberId: number;
-  name: string;
-  email: string;
+  teamId: number;
   role: string;
-  individual_score: number; // Corrigido para individual_score
-  is_admin: boolean; // Corrigido para is_admin
-  unlockedRewardIds: number[];
-  receivedFeedbacks: {
-    id: number;
-    message: string;
-    date: string;
-    givenBy: number;
-    relatedTaskId: number;
-  }[];
+  // Role, isAdmin e TeamId não são mais fornecidos pelo usuário no frontend
 }
 
 export interface AuthResponse {
@@ -38,10 +25,12 @@ const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     // Primeiro, vamos buscar o membro pelo email
     const response = await api.get('/api/members');
-    const members = response.data;
+    const members: Member[] = response.data;
+    console.log('Membros encontrados:', members);
     
     // Encontrar o membro pelo email
-    const member = members.find((m: Member) => m.email === credentials.email);
+    const member = members.find((m) => m.email === credentials.email);
+    console.log('Membro encontrado:', member);
     
     if (!member) {
       throw new Error('Usuário não encontrado');
@@ -49,30 +38,51 @@ const authService = {
     
     // Em um ambiente real, a senha seria verificada no backend
     // Aqui estamos apenas simulando a autenticação
-    if (member.password !== credentials.password) {
+    if (member.password !== credentials.password) { // Note: Comparing plain text passwords is not secure in production
       throw new Error('Senha incorreta');
     }
     
+    // Agora, buscamos todos os times para encontrar o teamId do membro
+    let memberTeamId: number | undefined;
+    try {
+      const teams = await teamService.getAll();
+      console.log('Times encontrados:', teams);
+      const memberTeam = teams.find(team => team.members?.some(m => m.value === member.memberId));
+      console.log('Time do membro encontrado:', memberTeam);
+      if (memberTeam) {
+        memberTeamId = memberTeam.id?.value;
+        console.log('TeamId do membro:', memberTeamId);
+      }
+    } catch (error) {
+      console.error('Error fetching teams in login:', error);
+      // Continue login even if fetching teams fails, but memberTeamId will be undefined
+    }
+
     // Criar um token JWT simulado
     const token = btoa(JSON.stringify({ id: member.memberId, email: member.email }));
     
+    // Ensure teamId is included in the user object before storing
+    const userToStore: Member = {
+      ...member,
+      teamId: memberTeamId
+    };
+    console.log('Usuário a ser armazenado:', userToStore);
+
     return {
       token,
-      user: member
+      user: userToStore
     };
   },
 
   register: async (userData: RegisterData): Promise<AuthResponse> => {
     try {
-      // Dados para enviar ao backend, com valores padrão para role e is_admin
+      // Dados para enviar ao backend, apenas com os campos esperados
       const dataToSend = {
         name: userData.name,
         email: userData.email,
         password: userData.password,
-        role: 'DEV', // Padrão 'DEV'
-        is_admin: false, // Padrão false
-        individual_score: 0, // Padrão 0
-        // teamId não é enviado pelo frontend nesta versão simplificada
+        role: userData.role,
+        teamId: userData.teamId,
       };
 
       // Criar novo membro

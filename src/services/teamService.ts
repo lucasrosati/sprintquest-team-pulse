@@ -1,4 +1,3 @@
-
 import api from './api';
 import { Team, CreateTeamRequest, AddMemberToTeamRequest } from '@/types/Team';
 
@@ -12,6 +11,12 @@ export const teamService = {
   // GET /api/teams/{id}
   getById: async (id: number): Promise<Team> => {
     const response = await api.get(`/api/teams/${id}`);
+    return response.data;
+  },
+
+  // GET /api/teams
+  getAll: async (): Promise<Team[]> => {
+    const response = await api.get('/api/teams');
     return response.data;
   },
 

@@ -49,7 +49,7 @@ const LoginForm: React.FC = () => {
       <div className="flex p-4">
         <Button 
           variant="ghost" 
-          className="p-0" 
+          className=""
           onClick={() => navigate('/')}
         >
           <ArrowLeft className="h-5 w-5 mr-1" />
@@ -91,9 +91,9 @@ const LoginForm: React.FC = () => {
             <Button 
               variant="link" 
               className="text-sm text-primary"
-              onClick={() => navigate('/forgot-password')}
+              onClick={() => navigate('/register')}
             >
-              Esqueceu a senha?
+              Não possui cadastro?
             </Button>
           </div>
         </form>

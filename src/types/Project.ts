@@ -1,4 +1,3 @@
-
 import { Team } from './Team';
 import { Task } from './Task';
 

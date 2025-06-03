@@ -1,34 +1,52 @@
-
 import { Member } from './Member';
+
+export type ColumnId = 'backlog' | 'pronto' | 'em progresso' | 'revisao' | 'concluido';
+
+export const columnNames: Record<ColumnId, string> = {
+  backlog: 'Backlog',
+  pronto: 'Pronto',
+  'em progresso': 'Em Progresso',
+  revisao: 'Revisão',
+  concluido: 'Concluído'
+};
 
 export interface Task {
   id: number;
+  projectId: number;
   title: string;
   description: string;
+  kanbanColumn: ColumnId;
   points: number;
   createdAt: string;
-  kanbanColumn: 'TODO' | 'DOING' | 'DONE';
   completedAt?: string;
   assignedMemberId?: number;
-  projectId?: number;
-  assignedMember?: Member;
+  assignees?: { memberId: number }[];
+  deadline?: string;
+  criteria?: string;
 }
 
 export interface CreateTaskRequest {
+  projectId: number;
   title: string;
   description: string;
+  kanbanColumn: ColumnId;
   assignedMemberId?: number;
   points: number;
+  deadline?: string;
+  criteria?: string;
 }
 
-export interface UpdateTaskColumnRequest {
-  column: 'TODO' | 'DOING' | 'DONE';
+export interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  kanbanColumn?: ColumnId;
+  assignedMemberId?: number;
+  points?: number;
+  deadline?: string;
+  criteria?: string;
 }
 
-export interface UpdateTaskTitleRequest {
-  newTitle: string;
-}
-
-export interface AssignTaskRequest {
-  memberId: number;
+export interface MoveTaskRequest {
+  taskId: number;
+  newColumn: ColumnId;
 }

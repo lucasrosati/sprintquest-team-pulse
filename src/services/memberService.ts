@@ -1,12 +1,14 @@
-
 import api from './api';
 import { Member, CreateMemberRequest, UpdatePointsRequest, UnlockRewardRequest } from '@/types/Member';
 
 export const memberService = {
   // GET /api/members
-  list: async (): Promise<Member[]> => {
+  list: async (teamId?: number): Promise<Member[]> => {
+    console.log('memberService.list chamado sem filtro de teamId na API');
     const response = await api.get('/api/members');
-    return response.data;
+    const members = response.data;
+    console.log('Todos os membros da API (sem filtro no service):', members);
+    return members; // Retorna todos os membros sem filtrar aqui
   },
 
   // POST /api/members
