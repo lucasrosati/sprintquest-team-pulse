@@ -276,16 +276,6 @@ export function KanbanBoard({
                   </div>
                 )}
               </Droppable>
-              {columnId === 'backlog' && isTeamLeader && (
-                <Button
-                  variant="ghost"
-                  className="w-full text-gray-400 hover:text-white hover:bg-gray-700 justify-start rounded-t-none"
-                  onClick={() => handleAddTaskClick(columnId as ColumnId)}
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Adicionar Tarefa
-                </Button>
-              )}
             </div>
           ))}
         </div>

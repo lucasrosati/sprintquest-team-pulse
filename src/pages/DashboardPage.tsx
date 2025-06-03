@@ -125,58 +125,54 @@ const DashboardPage = () => {
       <main className="container mx-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Projects Card */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
+          <Card className="bg-gray-800 border-gray-700 shadow-lg h-80">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-center text-xl text-white flex items-center justify-between">
                 <span>Meus Projetos</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6 h-[calc(100%-4rem)] overflow-y-auto pb-5">
+            <CardContent className="flex flex-col h-[calc(100%-4rem)] px-0">
               {projectsLoading ? (
-                <p className="text-center text-sm">Carregando projetos...</p>
-              ) : projects.length > 0 ? (
-                <div className="space-y-3">
-                  {projects.map((project) => (
-                    <div 
-                      key={project.id} 
-                      className="bg-gray-700 p-4 rounded-md cursor-pointer hover:bg-gray-650 transition-colors"
-                      onClick={() => navigate(`/project/${project.id}`)}
-                    >
-                      <h3 className="font-medium">{project.name}</h3>
-                      <p className="text-sm text-gray-400 mt-1">{project.description}</p>
+                <p className="text-center text-sm py-6">Carregando projetos...</p>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-3 px-6 pb-10 pt-4">
+                  {projects.length > 0 ? (
+                    projects.map((project) => (
+                      <div 
+                        key={project.id} 
+                        className="bg-gray-700 p-4 rounded-md cursor-pointer hover:bg-gray-650 transition-colors"
+                        onClick={() => navigate(`/project/${project.id}`)}
+                      >
+                        <h3 className="font-medium">{project.name}</h3>
+                        <p className="text-sm text-gray-400 mt-1">{project.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-400 mb-4">Nenhum projeto encontrado</p>
+                      {!isTeamLeader && (
+                        <p className="text-sm text-gray-400">Apenas o líder da equipe pode criar projetos.</p>
+                      )}
                     </div>
-                  ))}
-                  {isTeamLeader && (
-                    <Button 
-                      onClick={() => setIsCreateProjectOpen(true)}
-                      className="w-full bg-sprint-primary hover:bg-sprint-accent mt-4"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Projeto
-                    </Button>
                   )}
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 mb-4">Nenhum projeto encontrado</p>
-                  {isTeamLeader ? (
-                    <Button 
-                      onClick={() => setIsCreateProjectOpen(true)}
-                      className="bg-sprint-primary hover:bg-sprint-accent"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar primeiro projeto
-                    </Button>
-                  ) : (
-                    <p className="text-sm text-gray-400">Apenas o líder da equipe pode criar projetos.</p>
-                  )}
+              )}
+              {isTeamLeader && (
+                <div className="px-6 py-4 bg-gray-800 border-t border-gray-700 rounded-b-lg">
+                  <Button 
+                    onClick={() => setIsCreateProjectOpen(true)}
+                    className="w-full bg-sprint-primary hover:bg-sprint-accent"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Projeto
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
           
           {/* Team Score Card */}
-          <Card className="bg-gray-800 border-gray-700 shadow-lg h-72">
+          <Card className="bg-gray-800 border-gray-700 shadow-lg h-80">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-center text-xl text-white">Pontuação da Equipe</CardTitle>
             </CardHeader>
