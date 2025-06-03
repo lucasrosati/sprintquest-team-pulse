@@ -100,7 +100,7 @@ export function ProjectDetailsPage() {
     );
   }
 
-  const completedTasksCount = tasksToDisplay.filter((task) => task.kanbanColumn.toLowerCase() === 'done').length;
+  const completedTasksCount = tasksToDisplay.filter((task) => task.kanbanColumn === 'concluido').length;
   const totalTasksCount = tasksToDisplay.length;
   const progressPercentage = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0;
 
