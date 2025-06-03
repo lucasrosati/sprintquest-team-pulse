@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { Task, ColumnId, columnNames } from '@/types/Task';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Task, ColumnId, columnNames, CreateTaskRequest } from '@/types/Task';
 import { Member } from '@/types/Member';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { EditTaskDialog } from './EditTaskDialog';
@@ -21,9 +21,9 @@ interface KanbanBoardProps {
   tasks: Task[];
   projectMembers: Member[];
   createTask: (data: CreateTaskRequest) => Promise<void>;
-  updateTask: (taskId: number, newTitle: string) => Promise<any>;
-  moveTask: (data: any) => Promise<any>;
-  deleteTask: (taskId: number) => Promise<any>;
+  updateTask: (taskId: number, newTitle: string) => Promise<void>;
+  moveTask: (data: { taskId: number; newColumn: ColumnId }) => Promise<void>;
+  deleteTask: (taskId: number) => Promise<void>;
   isTeamLeader: boolean;
 }
 
@@ -74,7 +74,7 @@ export function KanbanBoard({
     return orderedColumns;
   }, [tasks]);
 
-  const handleDragEnd = async (result: any) => {
+  const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
     console.log('--- Drag End Event ---');
@@ -131,7 +131,7 @@ export function KanbanBoard({
     }
   };
 
-  const handleCreateTask = async (data: any) => {
+  const handleCreateTask = async (data: CreateTaskRequest) => {
     try {
       await createTask({
         ...data,
@@ -157,9 +157,9 @@ export function KanbanBoard({
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-5 gap-4">
           {Object.entries(columns).map(([columnId, columnTasks]) => (
-            <div key={columnId} className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between h-8">
-                <h3 className="font-semibold flex-1">{columnNames[columnId as ColumnId]}</h3>
+            <div key={columnId} className="flex flex-col space-y-2 p-2 rounded-lg bg-gray-800">
+              <div className="flex items-center justify-between h-8 px-2">
+                <h3 className="font-semibold flex-1 text-white">{columnNames[columnId as ColumnId]}</h3>
                 {columnId === 'backlog' && isTeamLeader && (
                   <div className="w-8 flex justify-end">
                     <Button
@@ -181,7 +181,7 @@ export function KanbanBoard({
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="flex-1 space-y-2 min-h-[200px] bg-muted/50 rounded-lg p-2 transition-colors duration-200"
+                    className="flex-1 space-y-2 min-h-[200px] rounded-lg p-2 transition-colors duration-200"
                   >
                     {columnTasks.map((task, index) => {
                       console.log('Renderizando task:', task);
@@ -205,8 +205,8 @@ export function KanbanBoard({
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`bg-card transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] ${
-                                task.assignedMemberId === currentUser?.memberId ? 'border-primary' : 'border-muted'
+                              className={`bg-gray-700 text-white rounded-md shadow-sm transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] ${
+                                task.assignedMemberId === currentUser?.memberId ? 'border-sprint-primary border-2' : 'border-gray-600 border'
                               }`}
                               style={{
                                 ...provided.draggableProps.style,
@@ -216,7 +216,7 @@ export function KanbanBoard({
                             >
                               <CardHeader className="p-3">
                                 <div className="flex items-start justify-between">
-                                  <CardTitle className="text-sm font-medium">
+                                  <CardTitle className="text-sm font-medium text-white">
                                     {task.title}
                                   </CardTitle>
                                   {(isTaskOwner || isTeamLeader) && (
@@ -250,22 +250,12 @@ export function KanbanBoard({
                                 </div>
                               </CardHeader>
                               <CardContent className="p-3 pt-0">
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {task.description}
-                                </p>
-                                {typeof task.points === 'number' && (
-                                  <div className="mt-2 flex items-center text-sm text-muted-foreground">
-                                    <span className="font-medium">
-                                      {task.points} pontos
-                                    </span>
-                                  </div>
-                                )}
-                                {task.assignedMemberId && (
-                                  <div className="mt-2 text-xs text-muted-foreground">
-                                    Responsável: {projectMembers.find(m => m.memberId === task.assignedMemberId)?.name}
-                                    {isTaskOwner && ' (Você)'}
-                                  </div>
-                                )}
+                                <div className="text-sm text-gray-400 space-y-1">
+                                  {task.description && <p>{task.description}</p>}
+                                  {task.assignedMemberId && (
+                                    <p className="text-xs">Responsável: {projectMembers.find(member => member.memberId === task.assignedMemberId)?.name || 'Não atribuído'}</p>
+                                  )}
+                                </div>
                               </CardContent>
                             </Card>
                           )}
@@ -281,23 +271,25 @@ export function KanbanBoard({
         </div>
       </DragDropContext>
 
-      {isCreateDialogOpen && (
-        <CreateTaskDialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-          onSubmit={handleCreateTask}
-          projectMembers={projectMembers}
-          projectId={projectId.toString()}
-        />
-      )}
+      <CreateTaskDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={handleCreateTask}
+        projectMembers={projectMembers}
+        projectId={projectId.toString()}
+      />
 
       {editingTask && (
         <EditTaskDialog
           open={!!editingTask}
-          onOpenChange={(open) => !open && setEditingTask(null)}
+          onOpenChange={(open) => {
+            if (!open) setEditingTask(null);
+          }}
           task={editingTask}
-          projectMembers={projectMembers}
-          onSubmit={updateTask}
+          onSubmit={async (taskId, newTitle) => {
+            await updateTask(taskId, newTitle);
+            setEditingTask(null);
+          }}
         />
       )}
     </div>

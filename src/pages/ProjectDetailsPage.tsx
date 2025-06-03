@@ -194,100 +194,102 @@ export function ProjectDetailsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
-      <Button 
-        variant="ghost" 
-        onClick={() => navigate('/dashboard')}
-        className="mb-4"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Voltar para o Dashboard
-      </Button>
+    <div className="bg-gray-900 text-white min-h-screen">
+      <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/dashboard')}
+          className="mb-4 text-gray-400 hover:text-white hover:bg-gray-800"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar para o Dashboard
+        </Button>
 
-      <div className="px-2">
-        <h1 className="text-3xl font-bold">{project.name}</h1>
-        <p className="text-muted-foreground">{project.description}</p>
-      </div>
+        <div className="px-2">
+          <h1 className="text-3xl font-bold text-white">{project.name}</h1>
+          <p className="text-gray-400">{project.description}</p>
+        </div>
 
-      <Card className="mx-2">
-        <CardHeader>
-          <CardTitle>Progresso do Projeto</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>
-                {completedTasksCount} de {totalTasksCount} tarefas concluídas
-              </span>
-              <span>{Math.round(progressPercentage)}%</span>
+        <Card className="mx-2 bg-gray-800 border-gray-700 shadow-lg">
+          <CardHeader className="border-b border-gray-700">
+            <CardTitle className="text-white">Progresso do Projeto</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-gray-400">
+                <span>
+                  {completedTasksCount} de {totalTasksCount} tarefas concluídas
+                </span>
+                <span>{Math.round(progressPercentage)}%</span>
+              </div>
+              <Progress value={progressPercentage} className="h-2 bg-gray-700" />
             </div>
-            <Progress value={progressPercentage} />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'kanban' | 'challenges')} className="w-full px-2">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="kanban">Quadro Kanban</TabsTrigger>
-          <TabsTrigger value="challenges" className="flex items-center gap-2">
-            <Trophy className="h-4 w-4" />
-            Desafios
-          </TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'kanban' | 'challenges')} className="w-full px-2">
+          <TabsList className="grid w-full grid-cols-2 mb-4 bg-gray-800 border-gray-700">
+            <TabsTrigger value="kanban" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">Quadro Kanban</TabsTrigger>
+            <TabsTrigger value="challenges" className="flex items-center gap-2 data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">
+              <Trophy className="h-4 w-4 mr-2" />
+              Desafios
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="kanban">
-          <Card className="bg-transparent border-none shadow-none">
-            <CardHeader className="px-0">
-              <CardTitle>Quadro Kanban</CardTitle>
-            </CardHeader>
-            <CardContent className="px-0">
-              <KanbanBoard
-                projectId={projectIdNumber}
-                tasks={tasksToDisplay}
-                projectMembers={projectMembers}
-                createTask={handleCreateTask}
-                updateTask={handleUpdateTask}
-                moveTask={handleMoveTask}
-                deleteTask={handleDeleteTask}
-                isTeamLeader={isTeamLeader}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="kanban">
+            <Card className="bg-transparent border-none shadow-none">
+              <CardHeader className="px-0">
+                <CardTitle className="text-white">Quadro Kanban</CardTitle>
+              </CardHeader>
+              <CardContent className="px-0">
+                <KanbanBoard
+                  projectId={projectIdNumber}
+                  tasks={tasksToDisplay}
+                  projectMembers={projectMembers}
+                  createTask={handleCreateTask}
+                  updateTask={handleUpdateTask}
+                  moveTask={handleMoveTask}
+                  deleteTask={handleDeleteTask}
+                  isTeamLeader={isTeamLeader}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="challenges">
-          <Card className="bg-transparent border-none shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between px-0">
-              <CardTitle>Desafios do Projeto</CardTitle>
-              {isTeamLeader && (
-                <Button
-                  onClick={() => setIsCreateChallengeOpen(true)}
-                  className="bg-sprint-primary hover:bg-sprint-accent"
-                >
-                  <Trophy className="h-4 w-4 mr-2" />
-                  Novo Desafio
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="px-0">
-              <ChallengeList
-                projectId={projectIdNumber}
-                onOpenCreateDialog={() => setIsCreateChallengeOpen(true)}
-                openCreateDialog={isCreateChallengeOpen}
-                onOpenCreateDialogChange={setIsCreateChallengeOpen}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="challenges">
+            <Card className="bg-transparent border-none shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between px-0">
+                <CardTitle className="text-white">Desafios do Projeto</CardTitle>
+                {isTeamLeader && (
+                  <Button
+                    onClick={() => setIsCreateChallengeOpen(true)}
+                    className="bg-sprint-primary hover:bg-sprint-accent"
+                  >
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Novo Desafio
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="px-0">
+                <ChallengeList
+                  projectId={projectIdNumber}
+                  onOpenCreateDialog={() => setIsCreateChallengeOpen(true)}
+                  openCreateDialog={isCreateChallengeOpen}
+                  onOpenCreateDialogChange={setIsCreateChallengeOpen}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-      <CreateChallengeDialog
-        open={isCreateChallengeOpen}
-        onOpenChange={setIsCreateChallengeOpen}
-        projectId={projectIdNumber}
-        createdBy={user?.memberId || 0}
-        onSubmit={handleCreateChallenge}
-      />
+        <CreateChallengeDialog
+          open={isCreateChallengeOpen}
+          onOpenChange={setIsCreateChallengeOpen}
+          projectId={projectIdNumber}
+          createdBy={user?.memberId || 0}
+          onSubmit={handleCreateChallenge}
+        />
+      </div>
     </div>
   );
 }
