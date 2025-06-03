@@ -10,6 +10,7 @@ import AvailableRewardsList from '@/components/rewards/AvailableRewardsList';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2 } from 'lucide-react';
+import { FeedbackList } from '@/components/feedback/FeedbackList';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -147,6 +148,9 @@ const ProfilePage = () => {
 
           {/* Unlocked Rewards Card */}
           <UnlockedRewardsList userId={user.memberId} />
+
+          {/* Feedbacks Card */}
+          <FeedbackList memberId={user.memberId} />
         </div>
       </main>
     </div>
