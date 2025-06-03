@@ -13,6 +13,7 @@ export interface Task {
   criteria?: string; // Critérios de aceitação opcionais
   points?: number; // Pontos da tarefa (adicionado conforme a API)
   // Adicione outros campos conforme a necessidade da sua API de backend
+  kanbanColumn: ColumnId; // Adicionar kanbanColumn aqui também
 }
 
 // Interfaces para requisições (se necessário)
@@ -49,6 +50,8 @@ export const taskService = {
       const tasks = await Promise.all(response.data.map(async (task: any) => {
         console.log('\n=== Processando task da lista ===');
         console.log('Task original (da lista): ', JSON.stringify(task, null, 2));
+        // Adicionar log para inspecionar a propriedade 'points'
+        console.log(`Task ${task.id} - Propriedade 'points' (bruta da API):`, task.points, `(Tipo: ${typeof task.points})`);
 
         // Buscar os assignees da task (mantido para garantir assignedMemberId)
         let assignees: number[] = [];
@@ -163,7 +166,30 @@ export const taskService = {
     console.log(`Fetching task by ID: ${taskId}`);
     const response = await api.get(`/api/tasks/${taskId}`);
     console.log(`Task ${taskId}:`, response.data);
-    return response.data;
+     // Mapear a coluna e pontos aqui
+    const taskData = response.data;
+    let kanbanColumn: ColumnId = 'backlog'; // Padrão
+    let points: number | undefined = undefined; // Inicializar pontos
+
+     const apiColumnName = taskData.kanbanColumn?.toLowerCase() || taskData.column?.toLowerCase() || taskData.status?.toLowerCase();
+     if (apiColumnName) {
+        if (apiColumnName === 'backlog') kanbanColumn = 'backlog';
+        else if (apiColumnName === 'pronto') kanbanColumn = 'pronto';
+        else if (apiColumnName === 'em progresso') kanbanColumn = 'em progresso';
+        else if (apiColumnName === 'revisao' || apiColumnName === 'revisão') kanbanColumn = 'revisao';
+        else if (apiColumnName === 'concluido' || apiColumnName === 'done' || apiColumnName === 'concluído') kanbanColumn = 'concluido';
+     }
+
+     // Tentar obter os pontos, verificando se é um número
+     if (typeof taskData.points === 'number') {
+        points = taskData.points;
+     } else if (typeof taskData.points === 'string' && !isNaN(parseInt(taskData.points))) {
+        // Se vier como string que pode ser convertida para número
+        points = parseInt(taskData.points);
+     }
+     console.log(`Task ${taskId} - Pontos processados:`, points);
+
+    return { ...taskData, kanbanColumn, points }; // Incluir pontos no retorno
   },
 
   // POST /api/projects/{projectId}/tasks
@@ -182,6 +208,16 @@ export const taskService = {
     const response = await api.patch(`/api/tasks/${taskId}`, data);
     console.log(`Task ${taskId} updated:`, response.data);
     return response.data;
+  },
+
+  // PATCH /api/tasks/{taskId}/title - Novo método para atualizar apenas o título
+  updateTitle: async (taskId: number, newTitle: string): Promise<Task> => {
+    console.log(`Updating task ${taskId} title to: ${newTitle}`);
+    const response = await api.patch(`/api/tasks/${taskId}/title`, { newTitle });
+    console.log(`Task ${taskId} title updated:`, response.data);
+    // A API pode retornar apenas o título atualizado, ou a task completa.
+    // Retornar a task completa (se disponível) ou uma estrutura mínima
+    return response.data || { id: taskId, title: newTitle, kanbanColumn: 'backlog' }; // Retornar a task atualizada (ou uma estrutura mínima) - assumindo que a API retorna a task atualizada
   },
 
   // PATCH /api/tasks/{taskId}/column - Ajustado endpoint e corpo
@@ -278,5 +314,19 @@ export const taskService = {
     const response = await api.get(`/api/tasks/${taskId}/assignees`);
     console.log(`Assignees da task ${taskId}:`, response.data);
     return response.data;
+  },
+
+  // PATCH /api/tasks/{taskId}/complete - Novo método para marcar task como completa
+  completeTask: async (taskId: number, memberId: number): Promise<void> => {
+    console.log(`Marking task ${taskId} as complete by member ${memberId}`);
+    try {
+      // Usar PATCH conforme o endpoint fornecido, passando memberId na query string
+      await api.patch(`/api/tasks/${taskId}/complete?memberId=${memberId}`);
+      console.log(`Task ${taskId} marked as complete.`);
+    } catch (error) {
+      console.error(`Erro ao marcar task ${taskId} como completa:`, error);
+      // Opcional: lançar erro ou retornar falha dependendo de como quer tratar no frontend
+      throw error; 
+    }
   },
 };

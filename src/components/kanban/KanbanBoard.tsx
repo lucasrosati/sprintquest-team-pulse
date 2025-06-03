@@ -21,7 +21,7 @@ interface KanbanBoardProps {
   tasks: Task[];
   projectMembers: Member[];
   createTask: (data: CreateTaskRequest) => Promise<void>;
-  updateTask: (data: any) => Promise<any>;
+  updateTask: (taskId: number, newTitle: string) => Promise<any>;
   moveTask: (data: any) => Promise<any>;
   deleteTask: (taskId: number) => Promise<any>;
   isTeamLeader: boolean;
@@ -39,7 +39,7 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [activeColumnId, setActiveColumnId] = useState<ColumnId | null>(null);
+  const [activeColumnId, setActiveColumnId] = useState<ColumnId>('backlog');
   const currentUser = authService.getCurrentUser();
 
   console.log('KanbanBoard - tasks prop:', tasks);
@@ -141,20 +141,6 @@ export function KanbanBoard({
 
     } catch (error) {
       console.error('Erro ao criar tarefa no KanbanBoard:', error);
-    }
-  };
-
-  const handleUpdateTask = async (data: any) => {
-    if (!editingTask) return;
-
-    try {
-      await updateTask({
-        taskId: editingTask.id,
-        data,
-      });
-      setEditingTask(null);
-    } catch (error) {
-      console.error('Erro ao atualizar tarefa no KanbanBoard:', error);
     }
   };
 
@@ -267,7 +253,7 @@ export function KanbanBoard({
                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                   {task.description}
                                 </p>
-                                {task.points && (
+                                {typeof task.points === 'number' && (
                                   <div className="mt-2 flex items-center text-sm text-muted-foreground">
                                     <span className="font-medium">
                                       {task.points} pontos
@@ -305,11 +291,11 @@ export function KanbanBoard({
 
       {editingTask && (
         <EditTaskDialog
+          open={!!editingTask}
+          onOpenChange={(open) => !open && setEditingTask(null)}
           task={editingTask}
           projectMembers={projectMembers}
-          onClose={() => setEditingTask(null)}
-          onSubmit={handleUpdateTask}
-          projectId={projectId}
+          onSubmit={updateTask}
         />
       )}
     </div>

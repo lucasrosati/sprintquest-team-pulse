@@ -156,7 +156,7 @@ export function ProjectDetailsPage() {
 
   const handleCreateTask = async (data: CreateTaskRequest) => {
     try {
-      await createTask.mutateAsync({
+      await createTask({
         ...data,
         projectId: projectIdNumber,
       });
@@ -166,12 +166,9 @@ export function ProjectDetailsPage() {
     }
   };
 
-  const handleUpdateTask = async ({ taskId, data }: { taskId: number; data: UpdateTaskRequest }) => {
+  const handleUpdateTask = async (taskId: number, newTitle: string) => {
     try {
-      await updateTask.mutateAsync({
-        taskId,
-        data,
-      });
+      await updateTask({ taskId, newTitle });
     } catch (error) {
       console.error('Erro ao atualizar tarefa na página:', error);
     }
@@ -179,7 +176,7 @@ export function ProjectDetailsPage() {
 
   const handleMoveTask = async ({ taskId, newColumn }: { taskId: number; newColumn: ColumnId }) => {
     try {
-      await moveTask.mutateAsync({
+      await moveTask({
         taskId,
         newColumn,
       });
@@ -190,7 +187,7 @@ export function ProjectDetailsPage() {
 
   const handleDeleteTask = async (taskId: number) => {
     try {
-      await deleteTask.mutateAsync(taskId);
+      await deleteTask(taskId);
     } catch (error) {
       console.error('Erro ao excluir tarefa na página:', error);
     }

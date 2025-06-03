@@ -28,20 +28,27 @@ export const useTasks = (projectId: number) => {
     }
   });
 
-  // Mutação para atualizar uma tarefa existente
-  const updateTask = useMutation({
-    mutationFn: ({ taskId, data }: { taskId: number; data: UpdateTaskRequest }) =>
-      taskService.update(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-      toast.success('Tarefa atualizada!');
+  // Mutação para atualizar o título de uma tarefa
+  const updateTaskTitleMutation = useMutation({
+    mutationFn: ({ taskId, newTitle }: { taskId: number, newTitle: string }) =>
+      taskService.updateTitle(taskId, newTitle),
+    onSuccess: (updatedTask) => {
+      console.log('useTasks - updateTaskTitleMutation onSuccess - updatedTask:', updatedTask);
+      queryClient.setQueryData<Task[]>(['tasks', projectId], (oldTasks) => {
+        if (!oldTasks) return [];
+        return oldTasks.map(task =>
+          task.id === updatedTask.id ? { ...task, title: updatedTask.title } : task
+        );
+      });
+      toast.success('Título da tarefa atualizado com sucesso!');
     },
     onError: (error) => {
-      console.error('Erro ao atualizar tarefa:', error);
-      toast.error('Erro ao atualizar tarefa');
-    }
+      console.error('useTasks - updateTaskTitleMutation onError:', error);
+      toast.error('Erro ao atualizar título da tarefa. Por favor, tente novamente.');
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
   });
-  
+
   // Mutação para mover uma tarefa entre colunas (atualiza o status)
   const moveTask = useMutation({
     mutationFn: ({ taskId, newColumn }: { taskId: number; newColumn: ColumnId }) => {
@@ -106,14 +113,14 @@ export const useTasks = (projectId: number) => {
       }
       toast.error(`Erro ao mover tarefa para ${variables.newColumn}.`);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       console.log('=== Sucesso na mutação moveTask (onSuccess) ===');
       console.log('Dados retornados pela API:', JSON.stringify(data, null, 2));
       console.log('Variáveis da mutação:', variables);
 
       // Mapear o nome da coluna retornado pela API para o nosso ColumnId
       let processedColumn: ColumnId = variables.newColumn; // Padrão: manter a coluna otimista
-      const apiReturnedColumn = data?.column?.toLowerCase(); // Obter o campo 'column' da API (lowercase)
+      const apiReturnedColumn = data?.column?.toLowerCase();
       
       console.log('Coluna retornada pela API (raw):', data?.column);
       console.log('Coluna retornada pela API (lowercase):', apiReturnedColumn);
@@ -123,8 +130,8 @@ export const useTasks = (projectId: number) => {
          if (apiReturnedColumn === 'backlog') processedColumn = 'backlog';
          else if (apiReturnedColumn === 'pronto') processedColumn = 'pronto';
          else if (apiReturnedColumn === 'em progresso') processedColumn = 'em progresso';
-         else if (apiReturnedColumn === 'revisao') processedColumn = 'revisao';
-         else if (apiReturnedColumn === 'concluido' || apiReturnedColumn === 'done') processedColumn = 'concluido';
+         else if (apiReturnedColumn === 'revisao' || apiReturnedColumn === 'revisão') processedColumn = 'revisao';
+         else if (apiReturnedColumn === 'concluido' || apiReturnedColumn === 'done' || apiReturnedColumn === 'concluído') processedColumn = 'concluido';
          // Adicionar outros mapeamentos se a API usar outros nomes
 
          console.log('Coluna processada da resposta da API:', processedColumn);
@@ -132,18 +139,23 @@ export const useTasks = (projectId: number) => {
          console.log('Campo \'column\' não encontrado na resposta da API ou inválido, usando coluna otimista:', processedColumn);
       }
 
-      // Atualizar o cache com os dados retornados pela API, usando a coluna processada
+      // Atualizar o cache com os dados retornados pela API
       queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
         if (!old) return [];
         const updatedTasks = old.map(task => {
            if (task.id === variables.taskId) {
               console.log(`Atualizando task ${task.id} no cache com dados da API e coluna processada.`);
-              // Usar os dados completos retornados pela API para atualizar a task no cache
-              // Garantir que o kanbanColumn da task no cache seja o que veio da API (processado)
+              // Usar os dados da API, mas garantir que campos como 'points' do estado anterior sejam mantidos
+              // a menos que a API retorne um novo valor para eles.
               const updatedTask = { 
-                 ...task, // Manter alguns campos do estado anterior se a API não retornar tudo
-                 ...data, // Sobrescrever com os dados da API
-                 kanbanColumn: processedColumn // >>> Usar a coluna processada da resposta da API <<<\n              };
+                 ...task, // Manter os dados anteriores da task
+                 ...data, // Sobrescrever com os dados da API (se existirem)
+                 kanbanColumn: processedColumn, // Garantir que o kanbanColumn está correto
+                 // Explicitamente manter points do estado anterior se não vier na API response
+                 points: data.points !== undefined ? data.points : task.points,
+                 description: data.description !== undefined ? data.description : task.description, // Manter descrição também
+                 assignedMemberId: data.assignedMemberId !== undefined ? data.assignedMemberId : task.assignedMemberId, // Manter responsável
+                 assignees: data.assignees !== undefined ? data.assignees : task.assignees // Manter assignees
               };
               console.log(`Task ${task.id} no cache após atualização:`, JSON.stringify(updatedTask, null, 2));
               return updatedTask;
@@ -155,10 +167,24 @@ export const useTasks = (projectId: number) => {
         return updatedTasks;
       });
 
-      // Não invalidamos mais a query aqui para evitar re-fetch desnecessário se a API retornar a task completa
-      // queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      // Chamar a API /complete se a tarefa foi movida para a coluna 'concluido'
+      if (processedColumn === 'concluido') {
+        console.log(`Task ${variables.taskId} movida para 'concluido', chamando API /complete.`);
+        if (currentUser?.memberId) {
+          try {
+            await taskService.completeTask(variables.taskId, currentUser.memberId);
+             console.log(`API /complete para task ${variables.taskId} chamada com sucesso.`);
+          } catch (error) {
+            console.error(`Falha ao chamar API /complete para task ${variables.taskId}:`, error);
+            // Opcional: toast de erro específico para falha ao completar
+            toast.error(`Erro ao marcar task ${variables.taskId} como completa.`);
+          }
+        } else {
+          console.warn('Usuário atual não identificado, não é possível chamar API /complete.');
+        }
+      }
 
-      toast.success(`Tarefa movida para ${columnNames[processedColumn]}!`); // Usar o nome mapeado para o toast
+      toast.success(`Tarefa movida para ${columnNames[processedColumn]}!`);
     },
      onSettled: (data, error, variables, context) => {
        console.log('=== Mutação moveTask finalizada (onSettled) ===');
@@ -190,10 +216,10 @@ export const useTasks = (projectId: number) => {
     tasks,
     isLoading,
     error,
-    createTask,
-    updateTask,
-    moveTask,
-    deleteTask,
+    createTask: createTask.mutateAsync,
+    updateTask: updateTaskTitleMutation.mutateAsync,
+    moveTask: moveTask.mutateAsync,
+    deleteTask: deleteTask.mutateAsync,
   };
 };
 
