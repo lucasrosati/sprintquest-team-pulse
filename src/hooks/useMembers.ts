@@ -125,13 +125,13 @@ export const useUnlockReward = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UnlockRewardRequest }) => 
+    mutationFn: ({ id, data }: { id: number; data: { rewardId: number } }) => 
       memberService.unlockReward(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allMembersWithoutTeamId'] });
-      queryClient.invalidateQueries({ queryKey: ['allTeams'] });
+      queryClient.invalidateQueries({ queryKey: ['unlockedRewards'] });
+      queryClient.invalidateQueries({ queryKey: ['availableRewards'] });
       queryClient.invalidateQueries({ queryKey: ['member'] });
-      toast.success('Recompensa desbloqueada!');
+      toast.success('Recompensa desbloqueada com sucesso!');
     },
     onError: (error) => {
       console.error('Erro ao desbloquear recompensa:', error);

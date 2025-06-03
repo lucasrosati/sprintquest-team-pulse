@@ -122,6 +122,10 @@ const authService = {
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
     return JSON.parse(userStr);
+  },
+
+  setCurrentUser: (user: Member): void => {
+    localStorage.setItem('user', JSON.stringify(user));
   }
 };
 

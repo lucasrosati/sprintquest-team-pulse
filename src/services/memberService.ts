@@ -30,9 +30,8 @@ export const memberService = {
   },
 
   // PATCH /api/members/{id}/rewards
-  unlockReward: async (id: number, data: UnlockRewardRequest): Promise<Member> => {
-    const response = await api.patch(`/api/members/${id}/rewards`, data);
-    return response.data;
+  unlockReward: async (id: number, data: { rewardId: number }): Promise<void> => {
+    await api.patch(`/api/members/${id}/rewards`, data);
   },
 
   // POST /api/members/{id}/feedbacks

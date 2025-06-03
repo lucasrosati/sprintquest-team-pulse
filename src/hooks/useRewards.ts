@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rewardService } from '@/services/rewardService';
 import { CreateRewardRequest, UpdateRewardPointsRequest } from '@/types/Reward';
@@ -65,5 +64,21 @@ export const useDeleteReward = () => {
       console.error('Erro ao excluir recompensa:', error);
       toast.error('Erro ao excluir recompensa');
     }
+  });
+};
+
+export const useUnlockedRewards = (userId: number) => {
+  return useQuery({
+    queryKey: ['unlockedRewards', userId],
+    queryFn: () => rewardService.getUnlockedRewards(userId),
+    enabled: !!userId,
+  });
+};
+
+export const useAvailableRewards = (points: number) => {
+  return useQuery({
+    queryKey: ['availableRewards', points],
+    queryFn: () => rewardService.getAvailableRewards(points),
+    enabled: points >= 0,
   });
 };

@@ -1,17 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import authService from '@/services/authService';
 import { useUserTasks } from '@/hooks/useUserTasks';
+import UnlockedRewardsList from '@/components/rewards/UnlockedRewardsList';
+import AvailableRewardsList from '@/components/rewards/AvailableRewardsList';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const user = authService.getCurrentUser();
+  const [userPoints, setUserPoints] = useState(user?.individualScore || 0);
 
   // Usar o hook para buscar as tarefas do usuário logado
   const { data: tasks, isLoading, error } = useUserTasks(user?.memberId);
+
+  const handlePointsUpdate = (newPoints: number) => {
+    setUserPoints(newPoints);
+    // Atualiza também o usuário no localStorage
+    if (user) {
+      const updatedUser = { ...user, individualScore: newPoints };
+      authService.setCurrentUser(updatedUser);
+    }
+  };
 
   if (!user) {
     return (
@@ -61,7 +73,7 @@ const ProfilePage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Pontuação Individual:</p>
-                <p className="text-lg font-medium text-sprint-primary">{user.individualScore || 0} pts</p>
+                <p className="text-lg font-medium text-sprint-primary">{userPoints} pts</p>
               </div>
                {/* Exibir TeamId se disponível */}
                {user.teamId && (
@@ -73,7 +85,7 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
           
-          {/* User Tasks Card (Novo)*/}
+          {/* User Tasks Card */}
           <Card className="bg-gray-800 border-gray-700 shadow-lg">
             <CardHeader className="border-b border-gray-700">
               <CardTitle className="text-xl text-white">Minhas Tarefas Atribuídas</CardTitle>
@@ -98,6 +110,16 @@ const ProfilePage = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Available Rewards Card */}
+          <AvailableRewardsList 
+            userId={user.memberId} 
+            userPoints={userPoints}
+            onPointsUpdate={handlePointsUpdate}
+          />
+
+          {/* Unlocked Rewards Card */}
+          <UnlockedRewardsList userId={user.memberId} />
         </div>
       </main>
     </div>

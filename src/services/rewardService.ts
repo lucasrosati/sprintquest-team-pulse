@@ -1,4 +1,3 @@
-
 import api from './api';
 import { Reward, CreateRewardRequest, UpdateRewardPointsRequest } from '@/types/Reward';
 
@@ -30,5 +29,17 @@ export const rewardService = {
   // DELETE /api/rewards/{id}
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/rewards/${id}`);
+  },
+
+  // GET /api/rewards/unlocked/{userId}
+  getUnlockedRewards: async (userId: number): Promise<Reward[]> => {
+    const response = await api.get(`/api/rewards/unlocked/${userId}`);
+    return response.data;
+  },
+
+  // GET /api/rewards/available/{points}
+  getAvailableRewards: async (points: number): Promise<Reward[]> => {
+    const response = await api.get(`/api/rewards/available/${points}`);
+    return response.data;
   }
 };
