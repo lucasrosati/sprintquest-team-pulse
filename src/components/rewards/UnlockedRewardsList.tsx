@@ -1,30 +1,15 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useUnlockedRewards } from '@/hooks/useRewards';
-import { useUnlockReward } from '@/hooks/useMembers';
 import { Gift, Trophy, Coffee } from 'lucide-react';
 
-interface AvailableRewardsListProps {
+interface UnlockedRewardsListProps {
   userId: number;
-  userPoints: number;
 }
 
-const AvailableRewardsList: React.FC<AvailableRewardsListProps> = ({ userId, userPoints }) => {
+const UnlockedRewardsList: React.FC<UnlockedRewardsListProps> = ({ userId }) => {
   const { data: rewards = [], isLoading } = useUnlockedRewards(userId);
-  const unlockRewardMutation = useUnlockReward();
-
-  const handleUnlockReward = async (rewardId: number) => {
-    try {
-      await unlockRewardMutation.mutateAsync({
-        id: userId,
-        data: { rewardId }
-      });
-    } catch (error) {
-      console.error('Erro ao desbloquear recompensa:', error);
-    }
-  };
 
   const getRewardIcon = (type: string) => {
     switch (type) {
@@ -69,42 +54,35 @@ const AvailableRewardsList: React.FC<AvailableRewardsListProps> = ({ userId, use
       </CardHeader>
       <CardContent className="space-y-4">
         {rewards.length === 0 ? (
-          <p className="text-center text-gray-400">Nenhuma recompensa disponível</p>
+          <p className="text-center text-gray-400">Nenhuma recompensa resgatada</p>
         ) : (
-          rewards.map((reward) => {
-            const canUnlock = userPoints >= reward.requiredPoints;
-            const isUnlocking = unlockRewardMutation.isPending;
-            
-            return (
-              <div
-                key={reward.id}
-                className="p-4 rounded-lg border border-sprint-primary bg-gray-750"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    <div className={`p-2 rounded-full ${getRewardColor(reward.type)}`}>
-                      {getRewardIcon(reward.type)}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-white">{reward.description}</h3>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <Badge variant="outline" className="text-sprint-primary border-sprint-primary">
-                          {reward.requiredPoints} pontos
-                        </Badge>
-                        <Badge variant="secondary">
-                          {reward.type}
-                        </Badge>
-                      </div>
-                    </div>
+          rewards.map((reward) => (
+            <div
+              key={reward.id}
+              className="p-4 rounded-lg border border-gray-600 bg-gray-700"
+            >
+              <div className="flex items-start space-x-3">
+                <div className={`p-2 rounded-full ${getRewardColor(reward.type)}`}>
+                  {getRewardIcon(reward.type)}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-white">{reward.description}</h3>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Badge variant="outline" className="text-sprint-primary border-sprint-primary">
+                      {reward.requiredPoints} pontos
+                    </Badge>
+                    <Badge variant="secondary">
+                      {reward.type}
+                    </Badge>
                   </div>
                 </div>
               </div>
-            );
-          })
+            </div>
+          ))
         )}
       </CardContent>
     </Card>
   );
 };
 
-export default AvailableRewardsList; 
+export default UnlockedRewardsList; 
