@@ -1,73 +1,98 @@
-# Welcome to your Lovable project
+# 🧩 SprintQuest - Frontend
 
-## Project info
+Este é o repositório da interface web do **SprintQuest**, uma plataforma gamificada para times de desenvolvimento ágil com foco em produtividade, motivação e engajamento.
 
-**URL**: https://lovable.dev/projects/f1fc4395-5ad2-4595-9c8e-5d1b77de2a30
+---
 
-## How can I edit this code?
+## 🚀 Tecnologias Utilizadas
 
-There are several ways of editing your application.
+- **React** com **TypeScript**
+- **Tailwind CSS** para estilos
+- **ShadCN UI** e **Lucide Icons**
+- Integração com backend em **Spring Boot**
+- Comunicação via **REST API**
+- **Vite** para build e desenvolvimento
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f1fc4395-5ad2-4595-9c8e-5d1b77de2a30) and start prompting.
+## 🛠️ Pré-requisitos
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js v18+ instalado
+- Gerenciador de pacotes: `npm` ou `yarn`
+- Backend rodando localmente em `http://localhost:8080`
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 📦 Instalação
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone o repositório:**
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+git clone https://github.com/lucasrosati/sprintquest-team-pulse.git
+cd sprintquest-team-pulse
 ```
 
-**Edit a file directly in GitHub**
+2. **Instale as dependências:**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm install
+# ou
+yarn
+```
 
-**Use GitHub Codespaces**
+3. **Crie um arquivo `.env` com as variáveis necessárias:**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```env
+VITE_API_URL=http://localhost:8080/api
+```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## ▶️ Executando o projeto
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+npm run dev
+# ou
+yarn dev
+```
 
-## How can I deploy this project?
+A aplicação estará disponível em:  
+📍 `http://localhost:5173`
 
-Simply open [Lovable](https://lovable.dev/projects/f1fc4395-5ad2-4595-9c8e-5d1b77de2a30) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🧪 Funcionalidades disponíveis
 
-Yes, you can!
+- Criação de projetos com nome, descrição e equipe
+- Criação de tarefas em colunas do Kanban
+- Atribuição de membros reais a tarefas
+- Visualização responsiva e interativa do progresso do time
+- Diálogo para criação de tarefas integrado com API REST
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 📁 Estrutura de Pastas
+
+```bash
+src/
+├── components/
+│   ├── KanbanBoard.tsx
+│   ├── projects/
+│   │   └── CreateTaskDialog.tsx
+├── lib/
+│   └── api.ts
+├── hooks/
+│   └── use-toast.ts
+```
+
+---
+
+## 👥 Contribuidores
+
+Projeto desenvolvido em equipe no contexto acadêmico. Para conhecer o time completo, acesse o [repositório principal](https://github.com/seu-usuario/sprintquest).
+
+---
+
+## 📜 Licença
+
+Este projeto é apenas para fins educacionais e não possui licença de uso comercial neste momento.
